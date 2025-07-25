@@ -1,8 +1,8 @@
-import Company from "@/components/Company/Company";
+import People from "@/components/People/People";
 import React from "react";
 
 const page = () => {
-  return <Company />;
+  return <People />;
 };
 
 export default page;

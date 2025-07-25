@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { loginApi, signUp } from "@/api/login.api";
 import { useRouter } from "next/navigation";
+import { useUserAtom } from "@/store/atoms";
 
 // Type definitions
 interface FormData {
@@ -41,6 +42,7 @@ const Login: React.FC = () => {
     password: "",
     confirmPassword: "",
   });
+  const { currentUser, setCurrentUser } = useUserAtom();
   const [errors, setErrors] = useState<FormErrors>({});
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -105,10 +107,17 @@ const Login: React.FC = () => {
       });
     }
 
-    if (response?.data.details) {
-      router.push("/dashboard"); // ✅ if details exist
-    } else {
-      router.push("/setup"); // ✅ if details not present
+    setCurrentUser(response?.data);
+    if (response?.data) {
+      if (!isLogin) {
+        router.push("/company");
+      } else {
+        if (response?.data.details) {
+          router.push("/dashboard"); // ✅ if details exist
+        } else {
+          router.push("/setup"); // ✅ if details not present
+        }
+      }
     }
   };
 

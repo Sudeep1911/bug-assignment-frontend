@@ -16,3 +16,12 @@ export const signUp = async (data: any) => {
     console.log("error", e);
   }
 };
+
+export const createUser = async(data:any)=>{
+  try{
+    const result = await EngineInstanse.post(`/users/create`, data, options);
+    return result;
+  }catch(e){
+    console.log("error", e);
+  }
+}
