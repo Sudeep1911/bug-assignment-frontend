@@ -29,21 +29,84 @@ body {
 
 /* Utility Classes Using Tailwind's @apply */
 .btn-gradient {
-  @apply bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  background-image: linear-gradient(
+    to right,
+    var(--tw-gradient-stops, #3b82f6, #f59e42)
+  );
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  transition: all 0.3s;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1),
+    0 4px 6px -4px rgba(59, 130, 246, 0.1);
+  transform: translateY(0);
+}
+.btn-gradient:hover {
+  box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.2),
+    0 8px 10px -6px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
 }
 
 .input-glass {
-  @apply bg-glass border text-white placeholder-slate-400 rounded-2xl px-4 py-3 focus:outline-none focus:border-primary focus:bg-white/10 transition-all duration-300;
+  background: rgba(255, 255, 255, 0.1); /* Example for bg-glass */
+  border: 1px solid #e5e7eb; /* Example for border */
+  color: #fff; /* text-white */
+  border-radius: 1rem; /* rounded-2xl */
+  padding-left: 1rem; /* px-4 */
+  padding-right: 1rem; /* px-4 */
+  padding-top: 0.75rem; /* py-3 */
+  padding-bottom: 0.75rem; /* py-3 */
+  transition: all 0.3s;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.input-glass::placeholder {
+  color: #94a3b8; /* placeholder-slate-400 */
+}
+
+.input-glass:focus {
+  outline: none;
+  border-color: #3b82f6; /* focus:border-primary */
+  background: rgba(255, 255, 255, 0.1); /* focus:bg-white/10 */
 }
 
 .card-glass {
-  @apply backdrop-blur-xl bg-glass border border-white/20 rounded-3xl p-8 shadow-2xl;
+  backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.1); /* Example for bg-glass */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1.5rem; /* rounded-3xl */
+  padding: 2rem; /* p-8 */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
 }
 
 .text-gradient {
-  @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  background: linear-gradient(
+    to right,
+    #3b82f6,
+    #f59e42
+  ); /* Replace with your primary and secondary colors */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .blob {
-  @apply absolute rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse;
+  position: absolute;
+  border-radius: 9999px;
+  mix-blend-mode: multiply;
+  filter: blur(20px);
+  opacity: 0.2;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.3;
+  }
 }
