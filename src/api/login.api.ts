@@ -1,5 +1,5 @@
 import { EngineInstanse, options } from "./fetch";
-export const loginApi = async (data: any) => {
+export const loginApi = async (data: Record<string, unknown>) => {
   try {
     const result = await EngineInstanse.post(`/users/signin`, data, options);
     return result;
@@ -8,7 +8,7 @@ export const loginApi = async (data: any) => {
   }
 };
 
-export const signUp = async (data: any) => {
+export const signUp = async (data: Record<string, unknown>) => {
   try {
     const result = await EngineInstanse.post(`/users/signup`, data, options);
     return result;
@@ -17,7 +17,7 @@ export const signUp = async (data: any) => {
   }
 };
 
-export const createUser = async(data:any)=>{
+export const createUser = async(data: Record<string, unknown>)=>{
   try{
     const result = await EngineInstanse.post(`/users/create`, data, options);
     return result;
