@@ -1,5 +1,7 @@
 // store/atoms.ts
-import { atom, useAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { useAtom } from "jotai";
+
 export interface User {
   email: string;
   password: string;
@@ -7,13 +9,18 @@ export interface User {
   role?: "developer" | "tester" | "admin";
   _id: string;
   details: {
-    companyId?: string; // ObjectId as string if client-side
-    designation?: string;
-    proficiency?: string[];
-    module?: string;
+    companyId?: string;
+    modules?: Module[];
   };
 }
-export const userAtom = atom<User>();
+export interface Module{
+  module:string
+  proficiency:number
+}
+
+// atomWithStorage will store it in localStorage under "user"
+export const userAtom = atomWithStorage<User | null>("user", null);
+
 export const useUserAtom = () => {
   const [currentUser, setCurrentUser] = useAtom(userAtom);
   return { currentUser, setCurrentUser };

@@ -1,4 +1,7 @@
-import { atom, useAtom } from "jotai";
+// store/atoms.ts
+import { atomWithStorage } from "jotai/utils";
+import { useAtom } from "jotai";
+
 export interface Company {
   _id: string;
   name: string;
@@ -6,7 +9,10 @@ export interface Company {
   description: string;
   ownerId: string;
 }
-export const companyAtom = atom<Company>();
+
+// Persist in localStorage under "company"
+export const companyAtom = atomWithStorage<Company | null>("company", null);
+
 export const useCompanyAtom = () => {
   const [companyUser, setCompanyUser] = useAtom(companyAtom);
   return { companyUser, setCompanyUser };

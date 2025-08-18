@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -10,80 +10,113 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { Project } from "@/types/project.types";
+import { ItemData } from "@/api/item.api";
+import { BarChart3, Bug, Kanban, Loader2, Timer } from "lucide-react";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
+
 interface DashboardProps {
-  selectedProject: string;
+  selectedProject?: Project;
+  availableEmployees: Employee[];
+  tasks: ItemData[];
 }
 
-const mockDevelopers = [
-  { name: "sk", tasks: 2, total: 5 },
-  { name: "khaleef", tasks: 1, total: 5 },
-];
-const mockTesters = [
-  { name: "alex", tasks: 3, total: 5 },
-  { name: "jane", tasks: 0, total: 5 },
-];
 
-const mockBugs = [
-  { id: "1", title: "UI not responsive", description: "", severity: "high", assignee: "sk", stage: "todo", category: "UI" },
-  { id: "2", title: "API error", description: "", severity: "critical", assignee: "khaleef", stage: "in-progress", category: "Backend" },
-  { id: "3", title: "Performance lag", description: "", severity: "medium", assignee: "alex", stage: "review", category: "Performance" },
-];
+export default function Dashboard({ selectedProject,availableEmployees,tasks }: DashboardProps) {
 
-const bugCategories = ["UI", "Backend", "Performance", "Security"];
-const categoryCounts = bugCategories.map(
-  cat => mockBugs.filter(bug => bug.category === cat).length
+ const totalTasks = tasks.length;
+const inProgressStageId = selectedProject?.kanbanStages.find(
+  stage => stage.name === "In Progress"
+)?._id?.toString();
+
+const doneStageId = selectedProject?.kanbanStages.find(
+  stage => stage.name === "Done"
+)?._id?.toString();
+
+// Then filter tasks by matching ObjectId strings
+const inProgressTasks = tasks.filter(
+  task => task.status?.toString() === inProgressStageId
+).length;
+
+const resolvedTasks = tasks.filter(
+  task => task.status?.toString() === doneStageId
+).length;
+
+  const criticalIssues = tasks.filter(task => task.priority === "High").length;
+
+  const resolutionRate = totalTasks > 0 ? Math.round((resolvedTasks / totalTasks) * 100) : 0;
+const categoryCounts = selectedProject?.modules.map(
+  cat => tasks.filter(bug => bug.modules === cat._id).length
 );
+const projectModules = selectedProject?.modules.map(module => module.name) || [];
 
-const severityLevels = ["critical", "high", "medium", "low"];
+const severityLevels = ["High","Medium", "Low"];
 const severityCounts = severityLevels.map(
-  sev => mockBugs.filter(bug => bug.severity === sev).length
+  sev => tasks.filter(bug => bug.priority === sev).length
 );
 
 const barData = {
-  labels: bugCategories,
+  labels: selectedProject?.modules.map(module => module.name) || [],
   datasets: [
     {
-      label: 'Bugs',
+      label: 'Tasks',
       data: categoryCounts,
-      backgroundColor: [
-        '#6366f1', '#06b6d4', '#f59e42', '#f87171'
-      ],
+backgroundColor: [
+  '#a855f7', // A shade of purple
+  '#06b6d4', // A shade of cyan
+  '#8b5cf6', // A slightly different purple
+  '#22d3ee', // A slightly different cyan
+],
     },
   ],
 };
 
 const doughnutData = {
-  labels: ['Critical', 'High', 'Medium', 'Low'],
+  labels: ['High', 'Medium', 'Low'],
   datasets: [
     {
       data: severityCounts,
-      backgroundColor: [
-        '#ef4444', // Critical
-        '#f59e42', // High
-        '#fbbf24', // Medium
-        '#22c55e', // Low
-      ],
+backgroundColor: [
+  '#ef4444', // High priority (Red, matches your critical issues color)
+  '#a855f7', // Medium priority (Purple)
+  '#06b6d4', // Low priority (Cyan)
+],
     },
   ],
 };
 
-export default function Dashboard({ selectedProject }: DashboardProps) {
   const [projectStatus] = useState("active");
+
+  // Filter availableEmployees by role
+  const mockDevelopers = availableEmployees
+    .filter(emp => emp.role?.toLowerCase() === "developer")
+    .map(dev => ({
+      name: dev.name||dev.email,
+      tasks: dev.tasks.length, // Replace with actual logic if available
+      total: tasks.length, // Replace with actual logic if available
+    }));
+
+  const mockTesters = availableEmployees
+    .filter(emp => emp.role?.toLowerCase() === "tester")
+    .map(tester => ({
+      name: tester.name||tester.email,
+      tasks: tester.tasks.length, // Replace with actual logic if available
+      total: tasks.length, // Replace with actual logic if available
+    }));
 
   return (
     <div className="space-y-6">
       {/* Project Overview */}
-      <div className="bg-white rounded-lg p-6 shadow-sm">
+      <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-8 shadow-2xl border border-white/20 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{selectedProject || "Select Project"}</h1>
-            <p className="text-gray-600 mt-1">new project</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">{selectedProject?.name || "Select Project"}</h1>
+            <p className="text-slate-400 mt-1">{selectedProject?.description || "Project Description"}</p>
           </div>
-          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-            {projectStatus}
+          <span className="px-3 py-1 bg-green-600/30 text-green-200 rounded-full text-sm font-medium border border-green-600">
+            Active
           </span>
         </div>
       </div>
@@ -91,62 +124,54 @@ export default function Dashboard({ selectedProject }: DashboardProps) {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Bugs */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Bugs</p>
-              <p className="text-2xl font-bold text-gray-900">3</p>
-              <p className="text-sm text-gray-500">2 open, 1 resolved</p>
+              <p className="text-sm font-medium text-slate-400">Total Tasks</p>
+              <p className="text-2xl font-bold text-white">{totalTasks}</p>
+              <p className="text-sm text-slate-500">{totalTasks - resolvedTasks} open, {resolvedTasks} resolved</p>
             </div>
-            <div className="text-blue-600">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-              </svg>
+            <div className="text-blue-400">
+              <BarChart3 className="w-8 h-8" />
             </div>
           </div>
         </div>
         {/* In Progress */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <p className="text-2xl font-bold text-gray-900">1</p>
-              <p className="text-sm text-gray-500">Being worked on</p>
+              <p className="text-sm font-medium text-slate-400">In Progress</p>
+              <p className="text-2xl font-bold text-white">{inProgressTasks}</p>
+              <p className="text-sm text-slate-500">Being worked on</p>
             </div>
-            <div className="text-blue-600">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-              </svg>
+            <div className="text-yellow-400">
+              <Timer className="w-8 h-8" />
             </div>
           </div>
         </div>
         {/* Critical Issues */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Critical Issues</p>
-              <p className="text-2xl font-bold text-red-600">1</p>
-              <p className="text-sm text-gray-500">Require immediate attention</p>
+              <p className="text-sm font-medium text-slate-400">High Priority Issues</p>
+              <p className="text-2xl font-bold text-red-400">{criticalIssues}</p>
+              <p className="text-sm text-slate-500">Require immediate attention</p>
             </div>
-            <div className="text-red-600">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-              </svg>
+            <div className="text-red-400">
+              <Bug className="w-8 h-8" />
             </div>
           </div>
         </div>
         {/* Resolution Rate */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Resolution Rate</p>
-              <p className="text-2xl font-bold text-green-600">33%</p>
-              <p className="text-sm text-gray-500">Bugs resolved</p>
+              <p className="text-sm font-medium text-slate-400">Resolution Rate</p>
+              <p className="text-2xl font-bold text-green-400">{resolutionRate}%</p>
+              <p className="text-sm text-slate-500">Tasks resolved</p>
             </div>
-            <div className="text-green-600">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
+            <div className="text-green-400">
+              <Kanban className="w-8 h-8" />
             </div>
           </div>
         </div>
@@ -154,59 +179,59 @@ export default function Dashboard({ selectedProject }: DashboardProps) {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bugs by Category */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Bugs by Category</h3>
-          <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
+          <h3 className="text-lg font-semibold text-white mb-4">Tasks by Category</h3>
+          <div className="h-64 flex items-center justify-center">
             <Bar data={barData} options={{
               responsive: true,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+              plugins: { legend: { display: false ,labels: { color: 'white' }} },
+              scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } },x: { ticks: { color: 'white' } } },
             }} />
           </div>
         </div>
         {/* Severity Distribution */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Severity Distribution</h3>
-          <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
+          <h3 className="text-lg font-semibold text-white mb-4">Severity Distribution</h3>
+          <div className="h-64 flex items-center justify-center">
             <Doughnut data={doughnutData} options={{
               responsive: true,
-              plugins: { legend: { position: 'bottom' } }
+              plugins: { legend: { position: 'bottom', labels: { color: 'white' } } }
             }} />
-          </div>
+            </div>
         </div>
       </div>
       {/* Workload Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Developer Workload */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Developer Workload</h3>
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
+          <h3 className="text-lg font-semibold text-white mb-4">Developer Workload</h3>
           <div className="space-y-3">
             {mockDevelopers.map(dev => (
-              <div key={dev.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={dev.name} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/20">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                     {dev.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-gray-900">{dev.name}</span>
+                  <span className="font-medium text-white">{dev.name}</span>
                 </div>
-                <span className="text-sm text-gray-600">{dev.tasks}/{dev.total}</span>
+                <span className="text-sm text-slate-400">{dev.tasks}/{dev.total}</span>
               </div>
             ))}
           </div>
         </div>
         {/* Tester Workload */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tester Workload</h3>
+        <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20">
+          <h3 className="text-lg font-semibold text-white mb-4">Tester Workload</h3>
           <div className="space-y-3">
             {mockTesters.map(tester => (
-              <div key={tester.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={tester.name} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/20">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                     {tester.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-gray-900">{tester.name}</span>
+                  <span className="font-medium text-white">{tester.name}</span>
                 </div>
-                <span className="text-sm text-gray-600">{tester.tasks}/{tester.total}</span>
+                <span className="text-sm text-slate-400">{tester.tasks}/{tester.total}</span>
               </div>
             ))}
           </div>
@@ -214,4 +239,4 @@ export default function Dashboard({ selectedProject }: DashboardProps) {
       </div>
     </div>
   );
-} 
+}
