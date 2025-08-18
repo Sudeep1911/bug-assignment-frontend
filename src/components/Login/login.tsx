@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, ChangeEvent, FormEvent } from "react";
+import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import {
   Eye,
   EyeOff,
@@ -15,6 +15,8 @@ import {
 import { loginApi, signUp } from "@/api/login.api";
 import { useRouter } from "next/navigation";
 import { useUserAtom } from "@/store/atoms";
+import { getCompanyById } from "@/api/company.api";
+import { useCompanyAtom } from "@/store/companyAtom";
 
 // Type definitions
 interface FormData {
@@ -43,7 +45,14 @@ const Login: React.FC = () => {
     confirmPassword: "",
   });
   const { currentUser, setCurrentUser } = useUserAtom();
+  const { setCompanyUser } = useCompanyAtom();
   const [errors, setErrors] = useState<FormErrors>({});
+    const [formError, setFormError] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentUser(null);
+      setCompanyUser(null);
+  }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
@@ -58,6 +67,7 @@ const Login: React.FC = () => {
         [name]: "",
       });
     }
+        setFormError("");
   };
 
   const validateForm = (): boolean => {
@@ -88,38 +98,55 @@ const Login: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+const handleSubmit = async () => {
+  if (!validateForm()) return;
 
-    let response;
+  setFormError("");
+  let responseData = null;
 
+  try {
     if (isLogin) {
-      response = await loginApi({
+      const data  = await loginApi({
         email: formData.email,
         password: formData.password,
       });
+      responseData = data?.data;
+
+      if (!responseData) {
+        setFormError("Invalid email or password");
+        return;
+      }
     } else {
-      response = await signUp({
+      const data  = await signUp({
         email: formData.email,
         password: formData.password,
         name: formData.name,
         role: "admin",
       });
+      responseData = data?.data;
     }
 
-    setCurrentUser(response?.data);
-    if (response?.data) {
-      if (!isLogin) {
-        router.push("/company");
-      } else {
-        if (response?.data.details) {
-          router.push("/dashboard"); // ✅ if details exist
-        } else {
-          router.push("/setup"); // ✅ if details not present
-        }
-      }
+    setCurrentUser(responseData);
+
+    if (!responseData) return;
+
+    if (!isLogin) {
+      router.push("/company");
+      return;
     }
-  };
+
+    if (responseData.details?.companyId) {
+      const company = await getCompanyById(responseData.details.companyId);
+      setCompanyUser(company);
+      router.push("/dashboard");
+    } else {
+      router.push("/setup");
+    }
+  } catch (err) {
+    console.error("Error during submit:", err);
+    setFormError("Something went wrong. Please try again.");
+  }
+};
 
   const handleForgotPassword = (): void => {
     const emailInput = document.getElementById(
@@ -139,7 +166,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+<div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
@@ -167,7 +194,7 @@ const Login: React.FC = () => {
           {/* Toggle buttons */}
           <div className="flex bg-white/5 rounded-2xl p-1 mb-8">
             <button
-              onClick={() => setIsLogin(true)}
+              onClick={() => { setIsLogin(true); setFormError(""); setErrors({}); }}
               className={`flex-1 py-3 px-6 rounded-xl text-sm font-medium transition-all duration-300 ${
                 isLogin
                   ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg"
@@ -177,7 +204,7 @@ const Login: React.FC = () => {
               Login
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              onClick={() => { setIsLogin(false); setFormError(""); setErrors({}); }}
               className={`flex-1 py-3 px-6 rounded-xl text-sm font-medium transition-all duration-300 ${
                 !isLogin
                   ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg"
@@ -278,6 +305,11 @@ const Login: React.FC = () => {
               </div>
             )}
 
+            {/* General form error message */}
+            {formError && (
+              <p className="text-center text-red-400 text-sm">{formError}</p>
+            )}
+            
             {/* Forgot password link */}
             {isLogin && (
               <div className="text-right">

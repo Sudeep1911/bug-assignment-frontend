@@ -1,10 +1,10 @@
 import React from "react";
 import Login from "@/components/Login/login";
-import DashboardPage from "@/components/Dashboard";
+import ProjectId from "@/components/Project/ProjectId";
 const page = () => {
   return (
     <div>
-      < DashboardPage/>
+      <ProjectId />
     </div>
   );
 };

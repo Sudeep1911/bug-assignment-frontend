@@ -1,21 +1,43 @@
 "use client";
-import { getCompanyUserById } from "@/api/company.api";
-import { createProject } from "@/api/project.api";
+import { getCompanyUser } from "@/api/company.api";
+import { getProject, updateProject } from "@/api/project.api";
 import { useUserAtom } from "@/store/atoms";
 import { useCompanyAtom } from "@/store/companyAtom";
 import { GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-// Define interfaces for Employee, AssignedModule, and AssignedEmployee
+
+// Assuming these interfaces are defined elsewhere or in this file.
+// I've added a dummy 'Modules' interface to resolve the TypeScript error.
+interface Employee {
+  _id: string;
+  name: string;
+  role: string;
+}
 
 interface AssignedModule {
-  moduleId: string; // This will store the module name, as formData.modules stores names
+  moduleId: string;
   proficiency: number;
 }
 
 interface AssignedEmployee {
   employeeId: string;
   assignedModules: AssignedModule[];
+}
+
+interface Modules {
+  name: string;
+}
+
+interface ProjectDataFromAPI {
+  _id: string;
+  name: string;
+  description: string;
+  startDate: string; // The API might return this as a string
+  endDate: string; // The API might return this as a string
+  kanbanStages: string[];
+  modules: Modules[]; // The API might return an array of objects
+  employees: AssignedEmployee[];
 }
 
 interface ProjectFormData {
@@ -25,86 +47,98 @@ interface ProjectFormData {
   endDate: string;
   kanbanStages: string[];
   modules: string[];
-  employees: AssignedEmployee[]; // Updated to store AssignedEmployee objects
+  employees: AssignedEmployee[];
 }
 
-export default function CreateProject() {
-    const router = useRouter();
-  // State to manage form input values
+export default function EditProject() {
+  const router = useRouter();
+  const params = useParams();
+  const projectId = params.projectId as string;
+
   const [formData, setFormData] = useState<ProjectFormData>({
     name: "",
     description: "",
     startDate: "",
     endDate: "",
-    kanbanStages: ["Todo", "In Progress", "Testing", "Done"], // Default Kanban stages
-    modules: ["Frontend", "Backend", "Database", "DevOps", "Testing", "UI/UX"], // Sample modules
+    kanbanStages: [],
+    modules: [],
     employees: [],
   });
 
-  // State for available employees
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
-
-  // States for adding a NEW team member with modules
   const [selectedEmployeeToAdd, setSelectedEmployeeToAdd] = useState<Employee | null>(null);
   const [stagedModulesForNewEmployee, setStagedModulesForNewEmployee] = useState<AssignedModule[]>([]);
   const [currentModuleToStage, setCurrentModuleToStage] = useState<string>("");
   const [currentProficiencyToStage, setCurrentProficiencyToStage] = useState<number>(1);
-
-  // States for adding new modules and Kanban stages (unrelated to employee module assignment)
   const [newModule, setNewModule] = useState("");
   const [newStage, setNewStage] = useState("");
-  const [loading, setLoading] = useState(false); // State for loading indicator
+  const [loading, setLoading] = useState(false);
+  const [isProjectLoading, setIsProjectLoading] = useState(true);
   const { companyUser } = useCompanyAtom();
   const { currentUser } = useUserAtom();
 
-  const dragItem = useRef<null | number>(null);
-  const dragOverItem = useRef<null | number>(null);
-  // Fetch employees on component mount
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+
+  // Fetch project and employee data on component mount or projectId change
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchProjectAndEmployees = async () => {
+      if (!projectId || !companyUser?._id) return;
+
+      setIsProjectLoading(true);
       try {
-        if(!currentUser?.details.companyId) return;
-        // Simulate API call delay
-        const employees=await getCompanyUserById(currentUser?.details.companyId|| "");
-        if (!employees) return;
-        // Mock data for demonstration purposes
-        setAvailableEmployees(employees);
+        // Fetch employees
+        const employees = await getCompanyUser(companyUser._id);
+        if (employees) {
+          setAvailableEmployees(employees);
+        }
+
+        // Fetch project details
+        const project = await getProject(projectId);
+        if (project) {
+          // Correctly map the incoming project data to the formData state shape
+          setFormData({
+            name: project.name,
+            description: project.description,
+            startDate: new Date(project.startDate).toISOString().split('T')[0],
+            endDate: new Date(project.endDate).toISOString().split('T')[0],
+            kanbanStages: project.kanbanStages || [], // Ensure it's an array
+            // Map the modules from the API to the string[] format expected by the form state
+            modules: project.modules.map((m: Modules) => m.name) || [],
+            employees: project.employees || [], // Ensure 'employees' property is present
+          });
+        }
       } catch (error) {
-        console.error("Failed to fetch employees:", error);
+        console.error("Failed to fetch project or employees:", error);
+      } finally {
+        setIsProjectLoading(false);
       }
     };
 
-    // Fetch employees when the component mounts
-    fetchEmployees();
-  }, [currentUser]); // Empty dependency array means this effect runs once on mount
+    fetchProjectAndEmployees();
+  }, [projectId, companyUser]);
 
-  // Handles changes to input fields (project name, description, dates)
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prevData) => ({
+      ...prevData,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
-  // Adds a new module to the project's global module list
   const addModule = () => {
     if (newModule.trim() && !formData.modules.includes(newModule.trim())) {
       setFormData((prevData) => ({
         ...prevData,
         modules: [...prevData.modules, newModule.trim()],
       }));
-      setNewModule(""); // Clear the input field
+      setNewModule("");
     }
   };
 
-  // Removes a module from the project's global module list
   const removeModule = (moduleToRemove: string) => {
     setFormData((prevData) => ({
       ...prevData,
       modules: prevData.modules.filter((module) => module !== moduleToRemove),
-      // Also remove this module from any assigned employees
       employees: prevData.employees.map((emp) => ({
         ...emp,
         assignedModules: emp.assignedModules.filter(
@@ -114,49 +148,44 @@ export default function CreateProject() {
     }));
   };
 
-  // Adds a new Kanban stage to the project
   const addKanbanStage = () => {
     if (newStage.trim() && !formData.kanbanStages.includes(newStage.trim())) {
-      setFormData({
-        ...formData,
-        kanbanStages: [...formData.kanbanStages, newStage.trim()],
-      });
-      setNewStage(""); // Clear the input field
+      setFormData((prevData) => ({
+        ...prevData,
+        kanbanStages: [...prevData.kanbanStages, newStage.trim()],
+      }));
+      setNewStage("");
     }
   };
 
-  // Removes a Kanban stage from the project
   const removeKanbanStage = (stageToRemove: string) => {
-    setFormData({
-      ...formData,
-      kanbanStages: formData.kanbanStages.filter(
+    setFormData((prevData) => ({
+      ...prevData,
+      kanbanStages: prevData.kanbanStages.filter(
         (stage) => stage !== stageToRemove
       ),
-    });
+    }));
   };
 
-  // Adds a module with proficiency to the temporary staging area for a new employee
   const addModuleToStaging = () => {
     if (currentModuleToStage && !stagedModulesForNewEmployee.some(m => m.moduleId === currentModuleToStage)) {
       setStagedModulesForNewEmployee((prev) => [
         ...prev,
         { moduleId: currentModuleToStage, proficiency: currentProficiencyToStage },
       ]);
-      setCurrentModuleToStage(""); // Reset module selection
-      setCurrentProficiencyToStage(1); // Reset proficiency
+      setCurrentModuleToStage("");
+      setCurrentProficiencyToStage(1);
     } else if (currentModuleToStage) {
       console.warn(`Module '${currentModuleToStage}' is already staged for this employee.`);
     }
   };
 
-  // Removes a module from the temporary staging area for a new employee
   const removeStagedModule = (moduleId: string) => {
     setStagedModulesForNewEmployee((prev) =>
       prev.filter((mod) => mod.moduleId !== moduleId)
     );
   };
 
-  // Adds the selected employee with their staged modules to the project's team
   const addTeamMemberWithModules = () => {
     if (selectedEmployeeToAdd && stagedModulesForNewEmployee.length > 0) {
       setFormData((prevData) => ({
@@ -166,7 +195,6 @@ export default function CreateProject() {
           { employeeId: selectedEmployeeToAdd._id, assignedModules: stagedModulesForNewEmployee },
         ],
       }));
-      // Reset all states related to adding a new employee
       setSelectedEmployeeToAdd(null);
       setStagedModulesForNewEmployee([]);
       setCurrentModuleToStage("");
@@ -174,64 +202,52 @@ export default function CreateProject() {
     }
   };
 
-  // Removes an assigned employee from the project's team
   const removeEmployee = (employeeId: string) => {
-    setFormData({
-      ...formData,
-      employees: formData.employees.filter((emp) => emp.employeeId !== employeeId),
-    });
+    setFormData((prevData) => ({
+      ...prevData,
+      employees: prevData.employees.filter((emp) => emp.employeeId !== employeeId),
+    }));
   };
 
-  // Helper function to get employee name by ID
   const getEmployeeName = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp._id === employeeId);
     return employee ? employee.name : "Unknown Employee";
   };
 
-  // Helper function to get employee role by ID
   const getEmployeeRole = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp._id === employeeId);
     return employee ? employee.role : "";
   };
 
-  // Handles form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent default form submission behavior
-    setLoading(true); // Set loading state to true
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      // Prepare project data for submission
-      const projectData = {
-        ...formData,
-        adminId: currentUser?._id,
-        companyId: companyUser?._id, // Use mock company ID
+      // Map modules from string[] to the required Modules[] format for the API
+      const updatedModules = formData.modules.map(moduleName => ({ name: moduleName }));
+      
+      const updatedProjectData = {
+        name: formData.name,
+        description: formData.description,
         startDate: new Date(formData.startDate),
         endDate: new Date(formData.endDate),
+        kanbanStages: formData.kanbanStages,
+        modules: updatedModules, // Use the mapped modules
+        employees: formData.employees,
       };
 
-      // Simulate API call for creating a project
-      await createProject(projectData); // Simulate network delay
-      console.log("Project data submitted:", projectData);
+      await updateProject(projectId, updatedProjectData);
+      console.log("Project data updated:", updatedProjectData);
 
-      // Simulate success and navigate (or show success message)
       setLoading(false);
-      // In a real Next.js app, you would use router.push('/projects');
       router.push("/dashboard");
-      // Optionally, reset form or show a success message
-      setFormData({
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        kanbanStages: ["Todo", "In Progress", "Review", "Done"],
-        modules: ["Frontend", "Backend", "Database", "DevOps", "Testing", "UI/UX"],
-        employees: [],
-      });
     } catch (error) {
-      console.error("Failed to create project:", error);
-      setLoading(false); // Reset loading state on error
+      console.error("Failed to update project:", error);
+      setLoading(false);
     }
   };
+
   const handleSort = () => {
     if (dragItem.current !== null && dragOverItem.current !== null) {
       const newList = [...formData.kanbanStages];
@@ -242,8 +258,17 @@ export default function CreateProject() {
     dragItem.current = null;
     dragOverItem.current = null;
   };
+
+  if (isProjectLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+        <Loader2 className="animate-spin text-white w-12 h-12" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-neutral-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
@@ -254,11 +279,11 @@ export default function CreateProject() {
       {/* Main content container */}
       <div className="w-full max-w-7xl relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r text-white bg-clip-text">
-            Create New Project
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+            Edit Project
           </h1>
           <p className="text-slate-400">
-            Configure your project settings for intelligent bug tracking
+            Modify your project settings and configurations
           </p>
         </div>
 
@@ -269,7 +294,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-500 rounded-xl">
                 <Settings className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r text-white bg-clip-text">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 Project Details
               </h2>
             </div>
@@ -342,7 +367,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-cyan-500 rounded-xl">
                 <Package className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r  bg-clip-text text-white">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 Modules
               </h2>
             </div>
@@ -390,7 +415,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-pink-500 rounded-xl">
                 <ListTodo className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r  bg-clip-text text-white">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 Kanban Stages
               </h2>
             </div>
@@ -425,9 +450,7 @@ export default function CreateProject() {
                   onChange={(e) => setNewStage(e.target.value)}
                   placeholder="Add new stage"
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && (e.preventDefault(), addKanbanStage())
-                  }
+                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addKanbanStage())}
                 />
                 <button
                   type="button"
@@ -446,7 +469,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-500 rounded-xl">
                 <Users className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r bg-clip-text text-white">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 Team Members
               </h2>
             </div>
@@ -607,10 +630,10 @@ export default function CreateProject() {
             {loading ? (
               <span className="flex items-center justify-center">
                 <Loader2 className="animate-spin w-6 h-6 mr-3" />
-                Creating Project...
+                Saving Changes...
               </span>
             ) : (
-              "Create Project"
+              "Save Changes"
             )}
           </button>
         </div>
