@@ -1,5 +1,5 @@
-import Project from "@/components/Project/Project";
-import React from "react";
+import Project from '@/components/Project/Project';
+import React from 'react';
 
 const page = () => {
   return <Project />;

@@ -1,12 +1,12 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { X, Calendar, User, LoaderCircle, ChevronDown, Paperclip } from "lucide-react";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, User, LoaderCircle, ChevronDown, Paperclip } from 'lucide-react';
 import Image from 'next/image';
-import { Project } from "@/types/project.types";
-import { createGPT } from "@/api/gpt.api";
-import { useUserAtom } from "@/store/atoms";
-import { ItemData } from "@/api/item.api";
-import TaskChat from "./TaskChat";
+import { Project } from '@/types/project.types';
+import { createGPT } from '@/api/gpt.api';
+import { useUserAtom } from '@/store/atoms';
+import { ItemData } from '@/api/item.api';
+import TaskChat from './TaskChat';
 
 interface SubmitItemPopupProps {
   isOpen: boolean;
@@ -15,8 +15,7 @@ interface SubmitItemPopupProps {
   onUpdate: (data: SubmitItemData) => void;
   availableEmployees: Employee[];
   selectedProject: Project | undefined;
-    itemToEdit?: ItemData;
-
+  itemToEdit?: ItemData;
 }
 
 export interface SubmitItemData {
@@ -39,19 +38,18 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
   onUpdate,
   availableEmployees,
   selectedProject,
-    itemToEdit,
-
+  itemToEdit,
 }) => {
   const [formData, setFormData] = useState<SubmitItemData>({
-    type: "",
-    title: "",
-    description: "",
-    modules: "",
-    priority: "",
-    assignedTo: "",
-    raisedBy: "",
-    monitoredBy: "",
-    dueDate: "",
+    type: '',
+    title: '',
+    description: '',
+    modules: '',
+    priority: '',
+    assignedTo: '',
+    raisedBy: '',
+    monitoredBy: '',
+    dueDate: '',
   });
   const { currentUser } = useUserAtom();
   const [isAutoFilling, setIsAutoFilling] = useState(false);
@@ -66,19 +64,19 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
       if (itemToEdit) {
         setFormData({
           ...itemToEdit,
-          dueDate: itemToEdit.dueDate ? new Date(itemToEdit.dueDate).toISOString().split('T')[0] : "",
+          dueDate: itemToEdit.dueDate ? new Date(itemToEdit.dueDate).toISOString().split('T')[0] : '',
         });
       } else {
         setFormData({
-          type: "",
-          title: "",
-          description: "",
-          modules: "",
-          priority: "",
-          assignedTo: "",
-          raisedBy: currentUser?._id || "",
-          monitoredBy: availableEmployees.find(emp => emp.role?.toLowerCase() === "admin")?._id || "",
-          dueDate: "",
+          type: '',
+          title: '',
+          description: '',
+          modules: '',
+          priority: '',
+          assignedTo: '',
+          raisedBy: currentUser?._id || '',
+          monitoredBy: availableEmployees.find((emp) => emp.role?.toLowerCase() === 'admin')?._id || '',
+          dueDate: '',
         });
       }
     }
@@ -88,20 +86,18 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
 
   // (Optional) fallback modules previously declared removed as unused.
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: "",
+        [name]: '',
       }));
     }
   };
@@ -112,20 +108,20 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
     if (!formData.title.trim() || !formData.description.trim()) {
       return;
     }
-    
+
     setIsAutoFilling(true); // Start loading
 
     try {
-      const payload = { 
-        projectId: selectedProject?._id, 
-        desc: `${formData.title},${formData.description}`, 
-        type: "dev" 
+      const payload = {
+        projectId: selectedProject?._id,
+        desc: `${formData.title},${formData.description}`,
+        type: 'dev',
       };
 
       const result = await createGPT(payload);
-      
+
       if (result?.data) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           priority: result.data.priority,
           modules: result.data.moduleId,
@@ -133,7 +129,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
         }));
       }
     } catch (error) {
-      console.error("Auto-fill failed:", error);
+      console.error('Auto-fill failed:', error);
       // You could also set an error state here to show a message to the user
     } finally {
       setIsAutoFilling(false); // End loading
@@ -143,15 +139,15 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.description.trim()) newErrors.description = "Description is required";
-    if (!formData.modules) newErrors.modules = "Module is required";
-    if (!formData.priority) newErrors.priority = "Priority is required";
-    if (!formData.type) newErrors.type = "Type is required";
-    if (!formData.assignedTo) newErrors.assignedTo = "Assignee is required";
-    if (!formData.raisedBy) newErrors.raisedBy = "Raised by is required";
-    if (!formData.monitoredBy) newErrors.monitoredBy = "Monitored by is required";
-    if (!formData.dueDate) newErrors.dueDate = "Due date is required";
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
+    if (!formData.modules) newErrors.modules = 'Module is required';
+    if (!formData.priority) newErrors.priority = 'Priority is required';
+    if (!formData.type) newErrors.type = 'Type is required';
+    if (!formData.assignedTo) newErrors.assignedTo = 'Assignee is required';
+    if (!formData.raisedBy) newErrors.raisedBy = 'Raised by is required';
+    if (!formData.monitoredBy) newErrors.monitoredBy = 'Monitored by is required';
+    if (!formData.dueDate) newErrors.dueDate = 'Due date is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -159,34 +155,34 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       setIsSubmitting(true); // Start loading
-      
+
       try {
         if (itemToEdit) {
           await onUpdate(formData);
         } else {
           await onSubmit({ ...formData, attachments: taskAttachments });
-        }// Use await if onSubmit is async
-        
+        } // Use await if onSubmit is async
+
         // Reset form
-  setFormData({
-          type: "",
-          title: "",
-          description: "",
-          modules: "",
-          priority: "",
-          assignedTo: "",
-          raisedBy: "",
-          monitoredBy: "",
-          dueDate: "",
+        setFormData({
+          type: '',
+          title: '',
+          description: '',
+          modules: '',
+          priority: '',
+          assignedTo: '',
+          raisedBy: '',
+          monitoredBy: '',
+          dueDate: '',
         });
-  setTaskAttachments([]);
-        
+        setTaskAttachments([]);
+
         onClose();
       } catch (error) {
-        console.error("Submission failed:", error);
+        console.error('Submission failed:', error);
         // Handle submission error
       } finally {
         setIsSubmitting(false); // End loading
@@ -199,9 +195,9 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
   // getTypeIcon removed (unused) to satisfy linter.
 
   return (
-<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-  <div className="relative backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[100vh] border border-white/20 flex flex-col">
-  {/* Chat moved inline inside the form below fields instead of floating */}
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="relative backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[100vh] border border-white/20 flex flex-col">
+        {/* Chat moved inline inside the form below fields instead of floating */}
         <div className="flex items-center justify-between p-6 border-b border-white/20">
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">Type</label>
@@ -212,14 +208,22 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                 onChange={handleInputChange}
                 className="w-48 px-4 py-2 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white transition-all duration-300 appearance-none"
               >
-                <option value="" className="bg-slate-900 text-slate-400">Select Type</option>
-                <option value="Bug" className="bg-slate-900 text-white">Bug</option>
-                <option value="Task" className="bg-slate-900 text-white">Task</option>
-                <option value="Feature" className="bg-slate-900 text-white">Feature</option>
+                <option value="" className="bg-slate-900 text-slate-400">
+                  Select Type
+                </option>
+                <option value="Bug" className="bg-slate-900 text-white">
+                  Bug
+                </option>
+                <option value="Task" className="bg-slate-900 text-white">
+                  Task
+                </option>
+                <option value="Feature" className="bg-slate-900 text-white">
+                  Feature
+                </option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
-             {errors.type && (<p className="text-red-400 text-sm mt-1">{errors.type}</p>)}
+            {errors.type && <p className="text-red-400 text-sm mt-1">{errors.type}</p>}
           </div>
           <div className="flex items-center space-x-4">
             <div>
@@ -235,20 +239,20 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
-               {errors.dueDate && (<p className="text-red-400 text-sm mt-1">{errors.dueDate}</p>)}
+              {errors.dueDate && <p className="text-red-400 text-sm mt-1">{errors.dueDate}</p>}
             </div>
             <button
               onClick={() => {
                 setFormData({
-                  type: "",
-                  title: "",
-                  description: "",
-                  modules: "",
-                  priority: "",
-                  assignedTo: "",
-                  raisedBy: "",
-                  monitoredBy: "",
-                  dueDate: "",
+                  type: '',
+                  title: '',
+                  description: '',
+                  modules: '',
+                  priority: '',
+                  assignedTo: '',
+                  raisedBy: '',
+                  monitoredBy: '',
+                  dueDate: '',
                 });
                 onClose();
               }}
@@ -259,7 +263,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
           </div>
         </div>
 
-  <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-400 mb-2">Title</label>
@@ -271,7 +275,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                 placeholder="Brief description of the issue"
                 className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white placeholder-slate-400 transition-all duration-300"
               />
-              {errors.title && (<p className="text-red-400 text-sm mt-1">{errors.title}</p>)}
+              {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
             </div>
 
             <div>
@@ -284,7 +288,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                 placeholder="Detailed description of the bug, steps to reproduce, expected vs actual behavior"
                 className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-vertical text-white placeholder-slate-400 transition-all duration-300"
               />
-              {errors.description && (<p className="text-red-400 text-sm mt-1">{errors.description}</p>)}
+              {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
             </div>
           </div>
 
@@ -298,14 +302,18 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white transition-all duration-300 appearance-none"
                 >
-                  <option value="" className="bg-slate-900 text-slate-400">Select module</option>
+                  <option value="" className="bg-slate-900 text-slate-400">
+                    Select module
+                  </option>
                   {selectedProject?.modules?.map((module) => (
-                    <option key={module._id} value={module._id} className="bg-slate-900 text-white">{module.name}</option>
+                    <option key={module._id} value={module._id} className="bg-slate-900 text-white">
+                      {module.name}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
-              {errors.modules && (<p className="text-red-400 text-sm mt-1">{errors.modules}</p>)}
+              {errors.modules && <p className="text-red-400 text-sm mt-1">{errors.modules}</p>}
             </div>
 
             <div>
@@ -317,14 +325,22 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white transition-all duration-300 appearance-none"
                 >
-                  <option value="" className="bg-slate-900 text-slate-400">Select Priority</option>
-                  <option value="High" className="bg-slate-900 text-red-400">High</option>
-                  <option value="Medium" className="bg-slate-900 text-yellow-400">Medium</option>
-                  <option value="Low" className="bg-slate-900 text-green-400">Low</option>
+                  <option value="" className="bg-slate-900 text-slate-400">
+                    Select Priority
+                  </option>
+                  <option value="High" className="bg-slate-900 text-red-400">
+                    High
+                  </option>
+                  <option value="Medium" className="bg-slate-900 text-yellow-400">
+                    Medium
+                  </option>
+                  <option value="Low" className="bg-slate-900 text-green-400">
+                    Low
+                  </option>
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
-               {errors.priority && (<p className="text-red-400 text-sm mt-1">{errors.priority}</p>)}
+              {errors.priority && <p className="text-red-400 text-sm mt-1">{errors.priority}</p>}
             </div>
 
             <div>
@@ -337,7 +353,9 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white transition-all duration-300 appearance-none"
                 >
-                  <option value="" className="bg-slate-900 text-slate-400">Select assignee</option>
+                  <option value="" className="bg-slate-900 text-slate-400">
+                    Select assignee
+                  </option>
                   {availableEmployees.map((user) => (
                     <option key={user._id} value={user._id} className="bg-slate-900 text-white">
                       {user.name || user.email} ({user.role})
@@ -346,10 +364,10 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
-              {errors.assignedTo && (<p className="text-red-400 text-sm mt-1">{errors.assignedTo}</p>)}
+              {errors.assignedTo && <p className="text-red-400 text-sm mt-1">{errors.assignedTo}</p>}
             </div>
           </div>
-          
+
           {/* Chat left, controls (Auto Fill, Raised, Monitored) right */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             <div className="md:col-span-2">
@@ -371,8 +389,8 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   className={`inline-flex px-3 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow items-center gap-1 disabled:from-white/5 disabled:to-white/5 disabled:text-slate-400 disabled:border-white/20 disabled:cursor-not-allowed text-xs`}
                   title={
                     formData.title.trim() && formData.description.trim()
-                      ? "Auto-fill based on title & description"
-                      : "Fill title & description first"
+                      ? 'Auto-fill based on title & description'
+                      : 'Fill title & description first'
                   }
                 >
                   {isAutoFilling && <LoaderCircle className="h-3 w-3 animate-spin" />}
@@ -388,7 +406,9 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white transition-all duration-300 appearance-none"
                   >
-                    <option value="" className="bg-slate-900 text-slate-400">Select user</option>
+                    <option value="" className="bg-slate-900 text-slate-400">
+                      Select user
+                    </option>
                     {availableEmployees.map((user) => (
                       <option key={user._id} value={user._id} className="bg-slate-900 text-white">
                         {user.name || user.email} ({user.role})
@@ -397,7 +417,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
-                {errors.raisedBy && (<p className="text-red-400 text-sm mt-1">{errors.raisedBy}</p>)}
+                {errors.raisedBy && <p className="text-red-400 text-sm mt-1">{errors.raisedBy}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Monitored By</label>
@@ -408,7 +428,9 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-white transition-all duration-300 appearance-none"
                   >
-                    <option value="" className="bg-slate-900 text-slate-400">Select user</option>
+                    <option value="" className="bg-slate-900 text-slate-400">
+                      Select user
+                    </option>
                     {availableEmployees.map((user) => (
                       <option key={user._id} value={user._id} className="bg-slate-900 text-white">
                         {user.name || user.email} ({user.role})
@@ -417,7 +439,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
-                {errors.monitoredBy && (<p className="text-red-400 text-sm mt-1">{errors.monitoredBy}</p>)}
+                {errors.monitoredBy && <p className="text-red-400 text-sm mt-1">{errors.monitoredBy}</p>}
               </div>
             </div>
           </div>
@@ -431,9 +453,9 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                 accept="image/*,video/*"
                 multiple
                 className="hidden"
-                onChange={e => {
+                onChange={(e) => {
                   const files = e.target.files ? Array.from(e.target.files) : [];
-                  if (files.length) setTaskAttachments(prev => [...prev, ...files]);
+                  if (files.length) setTaskAttachments((prev) => [...prev, ...files]);
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
               />
@@ -453,13 +475,19 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
               </div>
               {taskAttachments.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
-                  {taskAttachments.slice(0,8).map((file, idx) => {
+                  {taskAttachments.slice(0, 8).map((file, idx) => {
                     const url = URL.createObjectURL(file);
                     const isImg = file.type.startsWith('image/');
                     return (
                       <div key={idx} className="relative group border border-white/10 rounded-lg overflow-hidden">
                         {isImg ? (
-                          <Image src={url} alt={file.name} width={120} height={90} className="object-cover w-full h-16" />
+                          <Image
+                            src={url}
+                            alt={file.name}
+                            width={120}
+                            height={90}
+                            className="object-cover w-full h-16"
+                          />
                         ) : (
                           <video src={url} className="w-full h-16 object-cover" />
                         )}
@@ -478,9 +506,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
               className="order-1 md:order-2 self-end md:self-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-2xl font-bold hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow-lg flex items-center space-x-2 disabled:from-white/5 disabled:to-white/5 disabled:text-slate-400 disabled:border-white/20 disabled:cursor-not-allowed"
             >
               {isSubmitting && <LoaderCircle className="h-5 w-5 animate-spin" />}
-              <span>
-                {isSubmitting ? "Submitting..." : `Submit ${formData.type || ""}`}
-              </span>
+              <span>{isSubmitting ? 'Submitting...' : `Submit ${formData.type || ''}`}</span>
             </button>
           </div>
         </form>

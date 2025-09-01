@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { createCompany, updateCompany} from "@/api/company.api";
-import { useUserAtom } from "@/store/atoms";
-import { useCompanyAtom } from "@/store/companyAtom";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Building2, Loader2 } from "lucide-react";
-import Notification from "@/components/Dashboard/Notfication"; // Assuming this component exists
+import { createCompany, updateCompany } from '@/api/company.api';
+import { useUserAtom } from '@/store/atoms';
+import { useCompanyAtom } from '@/store/companyAtom';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, ArrowRight, Building2, Loader2 } from 'lucide-react';
+import Notification from '@/components/Dashboard/Notfication'; // Assuming this component exists
 
 // Mock updateCompany API function for demonstration purposes
 
@@ -17,24 +17,24 @@ export default function Company() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState({
-    type: "success" as "success" | "error",
-    message: "",
+    type: 'success' as 'success' | 'error',
+    message: '',
     isVisible: false,
   });
 
   const [formData, setFormData] = useState({
-    name: "",
-    industry: "",
-    description: "",
+    name: '',
+    industry: '',
+    description: '',
   });
-console.log(companyUser, "companyUser");
+  console.log(companyUser, 'companyUser');
   // Populate form with existing company data if available
   useEffect(() => {
     if (companyUser) {
       setFormData({
-        name: companyUser.name || "",
-        industry: companyUser.industry || "",
-        description: companyUser.description || "",
+        name: companyUser.name || '',
+        industry: companyUser.industry || '',
+        description: companyUser.description || '',
       });
       setIsEditing(true);
     } else {
@@ -42,9 +42,7 @@ console.log(companyUser, "companyUser");
     }
   }, [companyUser]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -59,30 +57,30 @@ console.log(companyUser, "companyUser");
         setCompanyUser(response?.data);
 
         setNotification({
-          type: "success",
-          message: "Company updated successfully!",
+          type: 'success',
+          message: 'Company updated successfully!',
           isVisible: true,
         });
       } else {
         // Handle create new company
         const id = currentUser?._id;
         response = await createCompany({ ...formData, ownerId: id });
-      
+
         if (response?.data) {
-          router.push("/company/people");
+          router.push('/company/people');
           setNotification({
-          type: "success",
-          message: "Company created successfully!",
-          isVisible: true,
-        });
-        setCompanyUser(response?.data);
+            type: 'success',
+            message: 'Company created successfully!',
+            isVisible: true,
+          });
+          setCompanyUser(response?.data);
         }
       }
     } catch (error) {
-      console.error("Submission failed:", error);
+      console.error('Submission failed:', error);
       setNotification({
-        type: "error",
-        message: "An error occurred. Please try again.",
+        type: 'error',
+        message: 'An error occurred. Please try again.',
         isVisible: true,
       });
     } finally {
@@ -104,21 +102,18 @@ console.log(companyUser, "companyUser");
           </button>
         </div>
       )}
-      
+
       <div className="w-full max-w-md relative">
         {!companyUser && (
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-2xl mb-6 shadow-2xl">
-            <Building2 className="w-10 h-10 text-white" />
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-2xl mb-6 shadow-2xl">
+              <Building2 className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              Create Company
+            </h1>
+            <p className="text-slate-400">Set up a new company to manage its tasks and projects.</p>
           </div>
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-Create Company
-          </h1>
-          <p className="text-slate-400">
-
-Set up a new company to manage its tasks and projects.
-          </p>
-        </div>
         )}
 
         <form
@@ -126,14 +121,12 @@ Set up a new company to manage its tasks and projects.
           className="backdrop-blur-xl bg-white/10 rounded-3xl p-8 shadow-2xl border border-white/20 space-y-6"
         >
           {companyUser && (
-                  <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-          Update Company
-          </h1>
-          <p className="text-slate-400">
-            Edit your company's details
-          </p>
-        </div>
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                Update Company
+              </h1>
+              <p className="text-slate-400">Edit your company's details</p>
+            </div>
           )}
           {/* Company Name */}
           <div className="relative gap-2">
@@ -183,7 +176,7 @@ Set up a new company to manage its tasks and projects.
           <button
             type="submit"
             className={`w-full bg-gradient-to-r from-purple-500 to-cyan-500 text-white py-4 rounded-2xl font-semibold hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center space-x-2 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             disabled={isSubmitting}
           >
@@ -191,7 +184,7 @@ Set up a new company to manage its tasks and projects.
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <>
-                <span>{isEditing ? "Update Company" : "Create Company"}</span>
+                <span>{isEditing ? 'Update Company' : 'Create Company'}</span>
                 <ArrowRight className="w-5 h-5" />
               </>
             )}

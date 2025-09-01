@@ -1,6 +1,5 @@
-import { ItemData } from "@/api/item.api";
-import { atom, useAtom } from "jotai";
-
+import { ItemData } from '@/api/item.api';
+import { atom, useAtom } from 'jotai';
 
 export interface ItemsState {
   items: ItemData[];
@@ -16,46 +15,44 @@ export const itemsAtom = atom<ItemsState>({
 
 export const useItemsAtom = () => {
   const [itemsState, setItemsState] = useAtom(itemsAtom);
-  
+
   const addItem = (item: ItemData) => {
-    setItemsState(prev => ({
+    setItemsState((prev) => ({
       ...prev,
       items: [...prev.items, item],
     }));
   };
 
   const updateItem = (itemId: string, updates: Partial<ItemData>) => {
-    setItemsState(prev => ({
+    setItemsState((prev) => ({
       ...prev,
-      items: prev.items.map(item => 
-        item._id === itemId ? { ...item, ...updates } : item
-      ),
+      items: prev.items.map((item) => (item._id === itemId ? { ...item, ...updates } : item)),
     }));
   };
 
   const removeItem = (itemId: string) => {
-    setItemsState(prev => ({
+    setItemsState((prev) => ({
       ...prev,
-      items: prev.items.filter(item => item._id !== itemId),
+      items: prev.items.filter((item) => item._id !== itemId),
     }));
   };
 
   const setItems = (items: ItemData[]) => {
-    setItemsState(prev => ({
+    setItemsState((prev) => ({
       ...prev,
       items,
     }));
   };
 
   const setLoading = (loading: boolean) => {
-    setItemsState(prev => ({
+    setItemsState((prev) => ({
       ...prev,
       loading,
     }));
   };
 
   const setError = (error: string | null) => {
-    setItemsState(prev => ({
+    setItemsState((prev) => ({
       ...prev,
       error,
     }));
@@ -70,4 +67,4 @@ export const useItemsAtom = () => {
     setLoading,
     setError,
   };
-}; 
+};

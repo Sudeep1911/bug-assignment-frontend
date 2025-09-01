@@ -1,11 +1,10 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { Mail, UserRound, Briefcase, Code, Building, PenLine, Loader2, Award, ArrowLeft } from "lucide-react";
-import { useUserAtom } from "@/store/atoms"; // Import the useUserAtom hook
-import { useCompanyAtom } from "@/store/companyAtom";
-import { useRouter, useSearchParams } from "next/navigation";
-import { getProject, getProjectModules } from "@/api/project.api";
-
+'use client';
+import React, { useState, useEffect } from 'react';
+import { Mail, UserRound, Briefcase, Code, Building, PenLine, Loader2, Award, ArrowLeft } from 'lucide-react';
+import { useUserAtom } from '@/store/atoms'; // Import the useUserAtom hook
+import { useCompanyAtom } from '@/store/companyAtom';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getProject, getProjectModules } from '@/api/project.api';
 
 export interface MockModules {
   _id: string;
@@ -14,33 +13,32 @@ export interface MockModules {
 export default function ProfilePage() {
   const { currentUser } = useUserAtom();
   const { companyUser } = useCompanyAtom();
-  const [moduleDetails, setModuleDetails] = useState<{ id: string; name: string; proficiency: number; }[]>([]);
+  const [moduleDetails, setModuleDetails] = useState<{ id: string; name: string; proficiency: number }[]>([]);
   const searchParams = useSearchParams();
   const router = useRouter();
-const projectId = searchParams.get('projectId');  
-useEffect(() => {
-const fetchData = async () => {
+  const projectId = searchParams.get('projectId');
+  useEffect(() => {
+    const fetchData = async () => {
       if (!projectId) return;
 
       // Simulate fetching project modules
-      const projectModules = await getProjectModules(projectId) as MockModules[];
+      const projectModules = (await getProjectModules(projectId)) as MockModules[];
 
       if (currentUser?.details?.modules) {
         // Map module IDs to their names and proficiency scores
-        const modulesWithNames = currentUser.details.modules.map(userModule => {
-          const foundModule = projectModules.find(m => m._id === userModule.module);
+        const modulesWithNames = currentUser.details.modules.map((userModule) => {
+          const foundModule = projectModules.find((m) => m._id === userModule.module);
           return {
             id: userModule.module,
             name: foundModule ? foundModule.name : 'Unknown Module',
-            proficiency: userModule.proficiency
+            proficiency: userModule.proficiency,
           };
         });
         setModuleDetails(modulesWithNames);
       }
     };
-    
-    fetchData();
 
+    fetchData();
   }, [currentUser]);
 
   if (!currentUser) {
@@ -70,7 +68,7 @@ const fetchData = async () => {
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                {currentUser.name || "User"}
+                {currentUser.name || 'User'}
               </h1>
               <span className="text-md text-slate-300 font-medium capitalize mt-1 inline-block">
                 {currentUser.role}
@@ -83,7 +81,7 @@ const fetchData = async () => {
             </div>
             <button
               className="absolute bottom-0 right-0 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-lg rounded-full border border-white/30 transition-colors"
-              onClick={() => alert("Edit functionality to be implemented.")}
+              onClick={() => alert('Edit functionality to be implemented.')}
             >
               <PenLine className="w-4 h-4 text-white" />
             </button>
@@ -111,11 +109,15 @@ const fetchData = async () => {
             <div className="space-y-4 bg-white/5 p-4 rounded-2xl border border-white/20">
               <div className="flex items-center gap-4">
                 <Building className="w-5 h-5 text-slate-400" />
-                <p className="text-slate-300 font-medium">Company: <span className="text-white">{companyUser?.name || "N/A"}</span></p>
+                <p className="text-slate-300 font-medium">
+                  Company: <span className="text-white">{companyUser?.name || 'N/A'}</span>
+                </p>
               </div>
               <div className="flex items-center gap-4">
                 <UserRound className="w-5 h-5 text-slate-400" />
-                <p className="text-slate-300 font-medium">Designation: <span className="text-white">{currentUser.role?.toLocaleUpperCase() || "N/A"}</span></p>
+                <p className="text-slate-300 font-medium">
+                  Designation: <span className="text-white">{currentUser.role?.toLocaleUpperCase() || 'N/A'}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -147,4 +149,3 @@ const fetchData = async () => {
     </div>
   );
 }
-

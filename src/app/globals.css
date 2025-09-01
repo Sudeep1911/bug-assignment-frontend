@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -37,16 +37,20 @@ body {
   font-weight: 600;
   border-radius: 0.75rem;
   transition: all 0.3s;
-  box-shadow: 0 10px 15px -3px rgba(59,130,246,0.1), 0 4px 6px -4px rgba(59,130,246,0.1);
+  box-shadow:
+    0 10px 15px -3px rgba(59, 130, 246, 0.1),
+    0 4px 6px -4px rgba(59, 130, 246, 0.1);
   transform: translateY(0);
 }
 .btn-gradient:hover {
-  box-shadow: 0 20px 25px -5px rgba(59,130,246,0.2), 0 8px 10px -6px rgba(59,130,246,0.2);
+  box-shadow:
+    0 20px 25px -5px rgba(59, 130, 246, 0.2),
+    0 8px 10px -6px rgba(59, 130, 246, 0.2);
   transform: translateY(-2px);
 }
 
 .input-glass {
-  background: rgba(255,255,255,0.1); /* Example for bg-glass */
+  background: rgba(255, 255, 255, 0.1); /* Example for bg-glass */
   border: 1px solid #e5e7eb; /* Example for border */
   color: #fff; /* text-white */
   border-radius: 1rem; /* rounded-2xl */
@@ -65,16 +69,16 @@ body {
 .input-glass:focus {
   outline: none;
   border-color: #3b82f6; /* focus:border-primary */
-  background: rgba(255,255,255,0.1); /* focus:bg-white/10 */
+  background: rgba(255, 255, 255, 0.1); /* focus:bg-white/10 */
 }
 
 .card-glass {
   backdrop-filter: blur(24px);
-  background: rgba(255,255,255,0.1); /* Example for bg-glass */
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.1); /* Example for bg-glass */
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1.5rem; /* rounded-3xl */
   padding: 2rem; /* p-8 */
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); /* shadow-2xl */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
 }
 
 .text-gradient {
@@ -94,7 +98,8 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.2;
   }

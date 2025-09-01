@@ -1,9 +1,9 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import { getProjects } from "@/api/project.api";
-import { useUserAtom } from "@/store/atoms";
-import { Project } from "@/types/project.types";
-import { ChevronDown } from "lucide-react"; // Importing an icon for the dropdown arrow
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import { getProjects } from '@/api/project.api';
+import { useUserAtom } from '@/store/atoms';
+import { Project } from '@/types/project.types';
+import { ChevronDown } from 'lucide-react'; // Importing an icon for the dropdown arrow
 
 interface ProjectSelectorProps {
   onSelect: (project: Project) => void;
@@ -29,7 +29,7 @@ export default function ProjectSelector({ onSelect, selectedProject }: ProjectSe
           onSelect(fetchedProjects[0]);
         }
       } catch (error) {
-        console.error("Failed to fetch projects:", error);
+        console.error('Failed to fetch projects:', error);
         setProjects([]);
       }
     };
@@ -45,9 +45,9 @@ export default function ProjectSelector({ onSelect, selectedProject }: ProjectSe
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -65,8 +65,10 @@ export default function ProjectSelector({ onSelect, selectedProject }: ProjectSe
                      bg-white/5 border border-white/20 hover:border-purple-500 hover:bg-white/10"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {selectedProject ? selectedProject.name : "Select Project"}
-          <ChevronDown className={`ml-2 h-4 w-4 transform transition-transform duration-200 ${isOpen ? "-rotate-180" : "rotate-0"}`} />
+          {selectedProject ? selectedProject.name : 'Select Project'}
+          <ChevronDown
+            className={`ml-2 h-4 w-4 transform transition-transform duration-200 ${isOpen ? '-rotate-180' : 'rotate-0'}`}
+          />
         </button>
       </div>
 
@@ -88,9 +90,7 @@ export default function ProjectSelector({ onSelect, selectedProject }: ProjectSe
                 </button>
               ))
             ) : (
-              <div className="px-4 py-2 text-sm text-slate-400">
-                No projects found.
-              </div>
+              <div className="px-4 py-2 text-sm text-slate-400">No projects found.</div>
             )}
           </div>
         </div>

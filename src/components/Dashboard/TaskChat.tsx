@@ -1,36 +1,14 @@
-"use client";
-import { useEffect, useRef, useState } from "react";
-import { X, Send, Paperclip } from "lucide-react";
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import { X, Send, Paperclip } from 'lucide-react';
 import Image from 'next/image';
-import { useUserAtom } from "@/store/atoms";
-
-export interface ChatAttachment {
-  id: string;
-  type: 'image' | 'video';
-  url: string; // object url (ephemeral) or remote url
-  name: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  userId: string;
-  text: string;
-  createdAt: number; // epoch ms
-  attachments?: ChatAttachment[];
-}
-
-interface TaskChatProps {
-  isOpen: boolean;
-  onClose: () => void; // currently just hides if parent wants
-  availableEmployees: Employee[];
-  chatId: string; // unique per task / item to avoid interference
-  showClose?: boolean; // hide close button when false
-}
+import { useUserAtom } from '@/store/atoms';
+import { ChatAttachment, ChatMessage, TaskChatProps } from '@/types/tasks.types';
 
 export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, showClose = true }: TaskChatProps) {
   const { currentUser } = useUserAtom();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number>(320);
@@ -44,35 +22,37 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
         setMessages(JSON.parse(raw));
       } else {
         // Seed mock if developer & tester present
-        const dev = availableEmployees.find(e => /dev/i.test(e.role || ''));
-        const tester = availableEmployees.find(e => /test/i.test(e.role || ''));
+        const dev = availableEmployees.find((e) => /dev/i.test(e.role || ''));
+        const tester = availableEmployees.find((e) => /test/i.test(e.role || ''));
         if (dev && tester) {
           const now = Date.now();
-            const seed: ChatMessage[] = [
-              {
-                id: crypto.randomUUID(),
-                userId: tester._id,
-                text: 'Found an issue on login form when submitting empty password – please confirm.',
-                createdAt: now - 1000 * 60 * 4,
-              },
-              {
-                id: crypto.randomUUID(),
-                userId: dev._id,
-                text: 'Acknowledged. Reproducing now. Will push a fix shortly.',
-                createdAt: now - 1000 * 60 * 3,
-              },
-            ];
+          const seed: ChatMessage[] = [
+            {
+              id: crypto.randomUUID(),
+              userId: tester._id,
+              text: 'Found an issue on login form when submitting empty password – please confirm.',
+              createdAt: now - 1000 * 60 * 4,
+            },
+            {
+              id: crypto.randomUUID(),
+              userId: dev._id,
+              text: 'Acknowledged. Reproducing now. Will push a fix shortly.',
+              createdAt: now - 1000 * 60 * 3,
+            },
+          ];
           setMessages(seed);
-          localStorage.setItem(`taskChat:${chatId}` , JSON.stringify(seed));
+          localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(seed));
         }
       }
     } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, chatId]);
 
   // Persist on change
   useEffect(() => {
-    try { localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(messages)); } catch {}
+    try {
+      localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(messages));
+    } catch {}
   }, [messages, chatId]);
 
   // Auto-scroll bottom
@@ -89,14 +69,14 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
       createdAt: Date.now(),
       attachments,
     };
-    setMessages(prev => [...prev, msg]);
-    setInput("");
+    setMessages((prev) => [...prev, msg]);
+    setInput('');
   };
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const attachments: ChatAttachment[] = [];
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file) => {
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
       if (!isImage && !isVideo) return; // ignore other types
@@ -112,7 +92,7 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
 
   const getUserMeta = (id: string) => {
     if (currentUser && currentUser._id === id) return currentUser;
-    return availableEmployees.find(e => e._id === id);
+    return availableEmployees.find((e) => e._id === id);
   };
 
   // Dynamic responsive height (clamped between 240 and 55vh)
@@ -130,7 +110,10 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
   if (!isOpen) return null;
 
   return (
-  <div className="w-full bg-black/80 border border-white/10 rounded-2xl shadow-inner overflow-hidden flex flex-col backdrop-blur-sm" style={{ height: dynamicHeight }}>
+    <div
+      className="w-full bg-black/80 border border-white/10 rounded-2xl shadow-inner overflow-hidden flex flex-col backdrop-blur-sm"
+      style={{ height: dynamicHeight }}
+    >
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/70">
         <h3 className="text-sm font-medium text-slate-200 tracking-wide">Team Chat</h3>
         {showClose && (
@@ -140,25 +123,38 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
         )}
       </div>
       {/* Messages area auto-grows until max height then scrolls */}
-      <div className="overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex-1" style={{}}>
+      <div
+        className="overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex-1"
+        style={{}}
+      >
         {messages.length === 0 && (
           <p className="text-xs text-slate-500 text-center">No messages yet. Start the conversation.</p>
         )}
-        {messages.map(m => {
+        {messages.map((m) => {
           const user = getUserMeta(m.userId);
           const mine = currentUser?._id === m.userId;
           return (
-            <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-              <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed border w-fit max-w-[85%] break-words ${mine ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent" : "bg-slate-800 text-slate-100 border-slate-700"}`}>
-                <div className={`text-[9px] mb-1 ${mine ? "text-white/80" : "text-slate-400"}`}>
-                  {(user?.name || user?.email || "Unknown")} {user?.role && <span className="text-slate-500">({user.role})</span>} · {m.userId?.slice(-4)} · {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+              <div
+                className={`px-3 py-2 rounded-2xl text-xs leading-relaxed border w-fit max-w-[85%] break-words ${mine ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent' : 'bg-slate-800 text-slate-100 border-slate-700'}`}
+              >
+                <div className={`text-[9px] mb-1 ${mine ? 'text-white/80' : 'text-slate-400'}`}>
+                  {user?.name || user?.email || 'Unknown'}{' '}
+                  {user?.role && <span className="text-slate-500">({user.role})</span>} · {m.userId?.slice(-4)} ·{' '}
+                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
                 {m.attachments?.length && (
                   <div className="space-y-2 mb-2">
-                    {m.attachments.map(att => (
+                    {m.attachments.map((att) => (
                       <div key={att.id} className="overflow-hidden rounded-lg border border-white/10">
                         {att.type === 'image' ? (
-                          <Image src={att.url} alt={att.name} width={300} height={200} className="max-h-40 w-auto object-contain" />
+                          <Image
+                            src={att.url}
+                            alt={att.name}
+                            width={300}
+                            height={200}
+                            className="max-h-40 w-auto object-contain"
+                          />
                         ) : (
                           <video src={att.url} controls className="max-h-40" />
                         )}
@@ -181,7 +177,10 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
             accept="image/*,video/*"
             multiple
             className="hidden"
-            onChange={e => { handleFiles(e.target.files); if (fileInputRef.current) fileInputRef.current.value=''; }}
+            onChange={(e) => {
+              handleFiles(e.target.files);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
           />
           <button
             type="button"
@@ -194,8 +193,8 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
           </button>
           <textarea
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
@@ -203,7 +202,7 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
             }}
             placeholder="Type a message..."
             rows={1}
-    className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-none leading-snug"
+            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-none leading-snug"
           />
           <button
             type="button"
