@@ -3,5 +3,5 @@ interface Employee {
   name: string;
   email: string;
   role: string;
-  tasks:any;
+  tasks: any;
 }

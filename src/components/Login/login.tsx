@@ -1,20 +1,11 @@
-"use client";
-import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  User,
-  ArrowRight,
-  Bug,
-
-} from "lucide-react";
-import { loginApi, signUp } from "@/api/login.api";
-import { useRouter } from "next/navigation";
-import { useUserAtom } from "@/store/atoms";
-import { getCompanyById } from "@/api/company.api";
-import { useCompanyAtom } from "@/store/companyAtom";
+'use client';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Bug } from 'lucide-react';
+import { loginApi, signUp } from '@/api/login.api';
+import { useRouter } from 'next/navigation';
+import { useUserAtom } from '@/store/atoms';
+import { getCompanyById } from '@/api/company.api';
+import { useCompanyAtom } from '@/store/companyAtom';
 
 // Type definitions
 interface FormData {
@@ -37,19 +28,19 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
   const { currentUser, setCurrentUser } = useUserAtom();
   const { setCompanyUser } = useCompanyAtom();
   const [errors, setErrors] = useState<FormErrors>({});
-    const [formError, setFormError] = useState<string>("");
+  const [formError, setFormError] = useState<string>('');
 
   useEffect(() => {
     setCurrentUser(null);
-      setCompanyUser(null);
+    setCompanyUser(null);
   }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -62,33 +53,33 @@ const Login: React.FC = () => {
     if (errors[name as keyof FormErrors]) {
       setErrors({
         ...errors,
-        [name]: "",
+        [name]: '',
       });
     }
-        setFormError("");
+    setFormError('');
   };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     if (!formData.email) {
-      newErrors.email = "Email is required";
+      newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+      newErrors.email = 'Email is invalid';
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     if (!isLogin) {
       if (!formData.name) {
-        newErrors.name = "Name is required";
+        newErrors.name = 'Name is required';
       }
       if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = "Passwords do not match";
+        newErrors.confirmPassword = 'Passwords do not match';
       }
     }
 
@@ -96,62 +87,60 @@ const Login: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async () => {
-  if (!validateForm()) return;
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
-  setFormError("");
-  let responseData = null;
+    setFormError('');
+    let responseData = null;
 
-  try {
-    if (isLogin) {
-      const data  = await loginApi({
-        email: formData.email,
-        password: formData.password,
-      });
-      responseData = data?.data;
+    try {
+      if (isLogin) {
+        const data = await loginApi({
+          email: formData.email,
+          password: formData.password,
+        });
+        responseData = data?.data;
 
-      if (!responseData) {
-        setFormError("Invalid email or password");
+        if (!responseData) {
+          setFormError('Invalid email or password');
+          return;
+        }
+      } else {
+        const data = await signUp({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: 'admin',
+        });
+        responseData = data?.data;
+      }
+
+      setCurrentUser(responseData);
+
+      if (!responseData) return;
+
+      if (!isLogin) {
+        router.push('/company');
         return;
       }
-    } else {
-      const data  = await signUp({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        role: "admin",
-      });
-      responseData = data?.data;
+
+      if (responseData.details?.companyId) {
+        const company = await getCompanyById(responseData.details.companyId);
+        setCompanyUser(company);
+        router.push('/dashboard');
+      } else {
+        router.push('/setup');
+      }
+    } catch (err) {
+      console.error('Error during submit:', err);
+      setFormError('Something went wrong. Please try again.');
     }
-
-    setCurrentUser(responseData);
-
-    if (!responseData) return;
-
-    if (!isLogin) {
-      router.push("/company");
-      return;
-    }
-
-    if (responseData.details?.companyId) {
-      const company = await getCompanyById(responseData.details.companyId);
-      setCompanyUser(company);
-      router.push("/dashboard");
-    } else {
-      router.push("/setup");
-    }
-  } catch (err) {
-    console.error("Error during submit:", err);
-    setFormError("Something went wrong. Please try again.");
-  }
-};
+  };
 
   const handleForgotPassword = (): void => {
-    const emailInput = document.getElementById(
-      "resetEmail"
-    ) as HTMLInputElement;
+    const emailInput = document.getElementById('resetEmail') as HTMLInputElement;
     if (emailInput && emailInput.value) {
-      console.log("Reset password for:", emailInput.value);
+      console.log('Reset password for:', emailInput.value);
       setShowForgotPassword(false);
       // Here you would handle the password reset
       // await resetPassword(emailInput.value);
@@ -159,12 +148,12 @@ const handleSubmit = async () => {
   };
 
   const handleSocialLogin = (provider: string): void => {
-    console.log("Social login with:", provider);
+    console.log('Social login with:', provider);
     // Handle social authentication
   };
 
   return (
-<div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
@@ -182,9 +171,7 @@ const handleSubmit = async () => {
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
             BugTracker Pro
           </h1>
-          <p className="text-slate-400">
-            Automated Bug Categorization & Task Assignment
-          </p>
+          <p className="text-slate-400">Automated Bug Categorization & Task Assignment</p>
         </div>
 
         {/* Auth Form */}
@@ -192,21 +179,29 @@ const handleSubmit = async () => {
           {/* Toggle buttons */}
           <div className="flex bg-white/5 rounded-2xl p-1 mb-8">
             <button
-              onClick={() => { setIsLogin(true); setFormError(""); setErrors({}); }}
+              onClick={() => {
+                setIsLogin(true);
+                setFormError('');
+                setErrors({});
+              }}
               className={`flex-1 py-3 px-6 rounded-xl text-sm font-medium transition-all duration-300 ${
                 isLogin
-                  ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg"
-                  : "text-slate-300 hover:text-white"
+                  ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               Login
             </button>
             <button
-              onClick={() => { setIsLogin(false); setFormError(""); setErrors({}); }}
+              onClick={() => {
+                setIsLogin(false);
+                setFormError('');
+                setErrors({});
+              }}
               className={`flex-1 py-3 px-6 rounded-xl text-sm font-medium transition-all duration-300 ${
                 !isLogin
-                  ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg"
-                  : "text-slate-300 hover:text-white"
+                  ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               Sign Up
@@ -228,9 +223,7 @@ const handleSubmit = async () => {
                     className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
                   />
                 </div>
-                {errors.name && (
-                  <p className="text-red-400 text-sm">{errors.name}</p>
-                )}
+                {errors.name && <p className="text-red-400 text-sm">{errors.name}</p>}
               </div>
             )}
 
@@ -247,9 +240,7 @@ const handleSubmit = async () => {
                   className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
                 />
               </div>
-              {errors.email && (
-                <p className="text-red-400 text-sm">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-red-400 text-sm">{errors.email}</p>}
             </div>
 
             {/* Password field */}
@@ -257,7 +248,7 @@ const handleSubmit = async () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   placeholder="Password"
                   value={formData.password}
@@ -269,16 +260,10 @@ const handleSubmit = async () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-red-400 text-sm">{errors.password}</p>
-              )}
+              {errors.password && <p className="text-red-400 text-sm">{errors.password}</p>}
             </div>
 
             {/* Confirm Password for signup */}
@@ -295,19 +280,13 @@ const handleSubmit = async () => {
                     className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
                   />
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-400 text-sm">
-                    {errors.confirmPassword}
-                  </p>
-                )}
+                {errors.confirmPassword && <p className="text-red-400 text-sm">{errors.confirmPassword}</p>}
               </div>
             )}
 
             {/* General form error message */}
-            {formError && (
-              <p className="text-center text-red-400 text-sm">{formError}</p>
-            )}
-            
+            {formError && <p className="text-center text-red-400 text-sm">{formError}</p>}
+
             {/* Forgot password link */}
             {isLogin && (
               <div className="text-right">
@@ -327,7 +306,7 @@ const handleSubmit = async () => {
               onClick={handleSubmit}
               className="w-full bg-gradient-to-r from-purple-500 to-cyan-500 text-white py-4 rounded-2xl font-semibold hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center space-x-2"
             >
-              <span>{isLogin ? "Sign In" : "Create Account"}</span>
+              <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
@@ -343,12 +322,9 @@ const handleSubmit = async () => {
       {showForgotPassword && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800/90 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md border border-white/20">
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Reset Password
-            </h3>
+            <h3 className="text-2xl font-bold text-white mb-2">Reset Password</h3>
             <p className="text-slate-400 mb-6">
-              Enter your email address and we&#39;ll send you a link to reset your
-              password.
+              Enter your email address and we&#39;ll send you a link to reset your password.
             </p>
 
             <div>

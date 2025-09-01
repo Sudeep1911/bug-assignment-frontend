@@ -5,12 +5,12 @@ export interface Project {
 
   startDate: Date;
   endDate: Date;
-  modules: Modules[]
+  modules: Modules[];
   kanbanStages: any[];
 }
 
-interface Modules{
+interface Modules {
   name: string;
-  _id:string;
+  _id: string;
   projectId: string;
 }

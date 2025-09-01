@@ -1,26 +1,22 @@
-"use client";
-import { createUser } from "@/api/login.api";
-import { useCompanyAtom } from "@/store/companyAtom";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Trash2, User, UserPlus } from "lucide-react";
+'use client';
+import { createUser } from '@/api/login.api';
+import { useCompanyAtom } from '@/store/companyAtom';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Trash2, User, UserPlus } from 'lucide-react';
 
 export default function People() {
-  const [employees, setEmployees] = useState([{ email: "", role: "",name:"" }]);
+  const [employees, setEmployees] = useState([{ email: '', role: '', name: '' }]);
   const { companyUser } = useCompanyAtom();
   const router = useRouter();
-  const handleEmployeeChange = (
-    index: number,
-    key: "email" | "role"| "name",
-    value: string
-  ) => {
+  const handleEmployeeChange = (index: number, key: 'email' | 'role' | 'name', value: string) => {
     const updated = [...employees];
     updated[index][key] = value;
     setEmployees(updated);
   };
 
   const handleAddEmployee = () => {
-    setEmployees([...employees, { email: "", role: "",name:"" }]);
+    setEmployees([...employees, { email: '', role: '', name: '' }]);
   };
 
   const handleRemoveEmployee = () => {
@@ -31,11 +27,11 @@ export default function People() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted Employees:", employees);
+    console.log('Submitted Employees:', employees);
     const payload = { employees: employees, companyId: companyUser?._id };
     const result = await createUser(payload);
     if (result?.data) {
-      router.push("/company/project");
+      router.push('/company/project');
     }
   };
 
@@ -57,9 +53,7 @@ export default function People() {
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
             Add Employees
           </h1>
-          <p className="text-slate-400">
-            Invite new members to your company and assign their roles.
-          </p>
+          <p className="text-slate-400">Invite new members to your company and assign their roles.</p>
         </div>
 
         <form
@@ -70,7 +64,7 @@ export default function People() {
             <div
               key={index}
               className={`mb-6 p-6 border border-white/20 rounded-2xl bg-white/5 space-y-4 transition-all duration-300 ${
-                index > 0 ? "mt-4" : ""
+                index > 0 ? 'mt-4' : ''
               }`}
             >
               {/* Employee Name */}
@@ -81,9 +75,7 @@ export default function People() {
                   type="text"
                   placeholder="Employee Name"
                   value={employee.name}
-                  onChange={(e) =>
-                    handleEmployeeChange(index, "name", e.target.value)
-                  }
+                  onChange={(e) => handleEmployeeChange(index, 'name', e.target.value)}
                   className="w-full pl-4 pr-4 py-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
                   required
                 />
@@ -97,9 +89,7 @@ export default function People() {
                   type="email"
                   placeholder="Employee Email"
                   value={employee.email}
-                  onChange={(e) =>
-                    handleEmployeeChange(index, "email", e.target.value)
-                  }
+                  onChange={(e) => handleEmployeeChange(index, 'email', e.target.value)}
                   className="w-full pl-4 pr-4 py-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
                   required
                 />
@@ -111,17 +101,11 @@ export default function People() {
                   id={`role-${index}`}
                   name="role"
                   value={employee.role}
-                  onChange={(e) =>
-                    handleEmployeeChange(index, "role", e.target.value)
-                  }
+                  onChange={(e) => handleEmployeeChange(index, 'role', e.target.value)}
                   className="w-full pl-4 pr-4 py-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300 appearance-none"
                   required
                 >
-                  <option
-                    value=""
-                    disabled
-                    className="bg-slate-900 text-slate-400"
-                  >
+                  <option value="" disabled className="bg-slate-900 text-slate-400">
                     Select Role
                   </option>
                   <option value="developer" className="bg-slate-900 text-white">

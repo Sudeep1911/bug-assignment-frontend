@@ -1,5 +1,5 @@
-import Company from "@/components/Company/Company";
-import React from "react";
+import Company from '@/components/Company/Company';
+import React from 'react';
 
 const page = () => {
   return <Company />;

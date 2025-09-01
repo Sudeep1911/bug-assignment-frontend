@@ -1,11 +1,11 @@
-"use client";
-import { getCompanyUserById } from "@/api/company.api";
-import { createProject } from "@/api/project.api";
-import { useUserAtom } from "@/store/atoms";
-import { useCompanyAtom } from "@/store/companyAtom";
-import { GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+'use client';
+import { getCompanyUserById } from '@/api/company.api';
+import { createProject } from '@/api/project.api';
+import { useUserAtom } from '@/store/atoms';
+import { useCompanyAtom } from '@/store/companyAtom';
+import { GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 // Define interfaces for Employee, AssignedModule, and AssignedEmployee
 
 interface AssignedModule {
@@ -29,15 +29,15 @@ interface ProjectFormData {
 }
 
 export default function CreateProject() {
-    const router = useRouter();
+  const router = useRouter();
   // State to manage form input values
   const [formData, setFormData] = useState<ProjectFormData>({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-    kanbanStages: ["Todo", "In Progress", "Testing", "Done"], // Default Kanban stages
-    modules: ["Frontend", "Backend", "Database", "DevOps", "Testing", "UI/UX"], // Sample modules
+    name: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    kanbanStages: ['Todo', 'In Progress', 'Testing', 'Done'], // Default Kanban stages
+    modules: ['Frontend', 'Backend', 'Database', 'DevOps', 'Testing', 'UI/UX'], // Sample modules
     employees: [],
   });
 
@@ -47,12 +47,12 @@ export default function CreateProject() {
   // States for adding a NEW team member with modules
   const [selectedEmployeeToAdd, setSelectedEmployeeToAdd] = useState<Employee | null>(null);
   const [stagedModulesForNewEmployee, setStagedModulesForNewEmployee] = useState<AssignedModule[]>([]);
-  const [currentModuleToStage, setCurrentModuleToStage] = useState<string>("");
+  const [currentModuleToStage, setCurrentModuleToStage] = useState<string>('');
   const [currentProficiencyToStage, setCurrentProficiencyToStage] = useState<number>(1);
 
   // States for adding new modules and Kanban stages (unrelated to employee module assignment)
-  const [newModule, setNewModule] = useState("");
-  const [newStage, setNewStage] = useState("");
+  const [newModule, setNewModule] = useState('');
+  const [newStage, setNewStage] = useState('');
   const [loading, setLoading] = useState(false); // State for loading indicator
   const { companyUser } = useCompanyAtom();
   const { currentUser } = useUserAtom();
@@ -63,14 +63,14 @@ export default function CreateProject() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        if(!currentUser?.details.companyId) return;
+        if (!currentUser?.details.companyId) return;
         // Simulate API call delay
-        const employees=await getCompanyUserById(currentUser?.details.companyId|| "");
+        const employees = await getCompanyUserById(currentUser?.details.companyId || '');
         if (!employees) return;
         // Mock data for demonstration purposes
         setAvailableEmployees(employees);
       } catch (error) {
-        console.error("Failed to fetch employees:", error);
+        console.error('Failed to fetch employees:', error);
       }
     };
 
@@ -79,9 +79,7 @@ export default function CreateProject() {
   }, [currentUser]); // Empty dependency array means this effect runs once on mount
 
   // Handles changes to input fields (project name, description, dates)
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -95,7 +93,7 @@ export default function CreateProject() {
         ...prevData,
         modules: [...prevData.modules, newModule.trim()],
       }));
-      setNewModule(""); // Clear the input field
+      setNewModule(''); // Clear the input field
     }
   };
 
@@ -107,9 +105,7 @@ export default function CreateProject() {
       // Also remove this module from any assigned employees
       employees: prevData.employees.map((emp) => ({
         ...emp,
-        assignedModules: emp.assignedModules.filter(
-          (mod) => mod.moduleId !== moduleToRemove
-        ),
+        assignedModules: emp.assignedModules.filter((mod) => mod.moduleId !== moduleToRemove),
       })),
     }));
   };
@@ -121,7 +117,7 @@ export default function CreateProject() {
         ...formData,
         kanbanStages: [...formData.kanbanStages, newStage.trim()],
       });
-      setNewStage(""); // Clear the input field
+      setNewStage(''); // Clear the input field
     }
   };
 
@@ -129,20 +125,18 @@ export default function CreateProject() {
   const removeKanbanStage = (stageToRemove: string) => {
     setFormData({
       ...formData,
-      kanbanStages: formData.kanbanStages.filter(
-        (stage) => stage !== stageToRemove
-      ),
+      kanbanStages: formData.kanbanStages.filter((stage) => stage !== stageToRemove),
     });
   };
 
   // Adds a module with proficiency to the temporary staging area for a new employee
   const addModuleToStaging = () => {
-    if (currentModuleToStage && !stagedModulesForNewEmployee.some(m => m.moduleId === currentModuleToStage)) {
+    if (currentModuleToStage && !stagedModulesForNewEmployee.some((m) => m.moduleId === currentModuleToStage)) {
       setStagedModulesForNewEmployee((prev) => [
         ...prev,
         { moduleId: currentModuleToStage, proficiency: currentProficiencyToStage },
       ]);
-      setCurrentModuleToStage(""); // Reset module selection
+      setCurrentModuleToStage(''); // Reset module selection
       setCurrentProficiencyToStage(1); // Reset proficiency
     } else if (currentModuleToStage) {
       console.warn(`Module '${currentModuleToStage}' is already staged for this employee.`);
@@ -151,9 +145,7 @@ export default function CreateProject() {
 
   // Removes a module from the temporary staging area for a new employee
   const removeStagedModule = (moduleId: string) => {
-    setStagedModulesForNewEmployee((prev) =>
-      prev.filter((mod) => mod.moduleId !== moduleId)
-    );
+    setStagedModulesForNewEmployee((prev) => prev.filter((mod) => mod.moduleId !== moduleId));
   };
 
   // Adds the selected employee with their staged modules to the project's team
@@ -169,7 +161,7 @@ export default function CreateProject() {
       // Reset all states related to adding a new employee
       setSelectedEmployeeToAdd(null);
       setStagedModulesForNewEmployee([]);
-      setCurrentModuleToStage("");
+      setCurrentModuleToStage('');
       setCurrentProficiencyToStage(1);
     }
   };
@@ -185,13 +177,13 @@ export default function CreateProject() {
   // Helper function to get employee name by ID
   const getEmployeeName = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp._id === employeeId);
-    return employee ? employee.name : "Unknown Employee";
+    return employee ? employee.name : 'Unknown Employee';
   };
 
   // Helper function to get employee role by ID
   const getEmployeeRole = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp._id === employeeId);
-    return employee ? employee.role : "";
+    return employee ? employee.role : '';
   };
 
   // Handles form submission
@@ -211,24 +203,24 @@ export default function CreateProject() {
 
       // Simulate API call for creating a project
       await createProject(projectData); // Simulate network delay
-      console.log("Project data submitted:", projectData);
+      console.log('Project data submitted:', projectData);
 
       // Simulate success and navigate (or show success message)
       setLoading(false);
       // In a real Next.js app, you would use router.push('/projects');
-      router.push("/dashboard");
+      router.push('/dashboard');
       // Optionally, reset form or show a success message
       setFormData({
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        kanbanStages: ["Todo", "In Progress", "Review", "Done"],
-        modules: ["Frontend", "Backend", "Database", "DevOps", "Testing", "UI/UX"],
+        name: '',
+        description: '',
+        startDate: '',
+        endDate: '',
+        kanbanStages: ['Todo', 'In Progress', 'Review', 'Done'],
+        modules: ['Frontend', 'Backend', 'Database', 'DevOps', 'Testing', 'UI/UX'],
         employees: [],
       });
     } catch (error) {
-      console.error("Failed to create project:", error);
+      console.error('Failed to create project:', error);
       setLoading(false); // Reset loading state on error
     }
   };
@@ -254,12 +246,8 @@ export default function CreateProject() {
       {/* Main content container */}
       <div className="w-full max-w-7xl relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r text-white bg-clip-text">
-            Create New Project
-          </h1>
-          <p className="text-slate-400">
-            Configure your project settings for intelligent bug tracking
-          </p>
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r text-white bg-clip-text">Create New Project</h1>
+          <p className="text-slate-400">Configure your project settings for intelligent bug tracking</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-8">
@@ -269,9 +257,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-500 rounded-xl">
                 <Settings className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r text-white bg-clip-text">
-                Project Details
-              </h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r text-white bg-clip-text">Project Details</h2>
             </div>
             <div className="space-y-6">
               <div>
@@ -342,9 +328,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-cyan-500 rounded-xl">
                 <Package className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r  bg-clip-text text-white">
-                Modules
-              </h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r  bg-clip-text text-white">Modules</h2>
             </div>
             <div className="space-y-6">
               <div className="flex flex-wrap gap-2">
@@ -371,7 +355,7 @@ export default function CreateProject() {
                   onChange={(e) => setNewModule(e.target.value)}
                   placeholder="Add new module"
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
-                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addModule())}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addModule())}
                 />
                 <button
                   type="button"
@@ -390,9 +374,7 @@ export default function CreateProject() {
               <div className="inline-flex items-center justify-center w-12 h-12 bg-pink-500 rounded-xl">
                 <ListTodo className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r  bg-clip-text text-white">
-                Kanban Stages
-              </h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r  bg-clip-text text-white">Kanban Stages</h2>
             </div>
             <div className="space-y-6">
               <div className="flex flex-wrap gap-2">
@@ -425,9 +407,7 @@ export default function CreateProject() {
                   onChange={(e) => setNewStage(e.target.value)}
                   placeholder="Add new stage"
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && (e.preventDefault(), addKanbanStage())
-                  }
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKanbanStage())}
                 />
                 <button
                   type="button"
@@ -439,35 +419,35 @@ export default function CreateProject() {
               </div>
             </div>
           </div>
-          
+
           {/* Team Members Section */}
           <div className="lg:col-span-2 xl:col-span-1 backdrop-blur-xl bg-white/10 rounded-3xl p-8 shadow-2xl border border-white/20">
             <div className="flex items-center gap-3 mb-5">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-500 rounded-xl">
                 <Users className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r bg-clip-text text-white">
-                Team Members
-              </h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r bg-clip-text text-white">Team Members</h2>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/20">
                 <p className="text-slate-400 text-sm font-medium">Add New Team Member:</p>
                 <select
-                  value={selectedEmployeeToAdd?._id || ""}
+                  value={selectedEmployeeToAdd?._id || ''}
                   onChange={(e) => {
                     const employee = availableEmployees.find((emp) => emp._id === e.target.value);
                     setSelectedEmployeeToAdd(employee || null);
                     setStagedModulesForNewEmployee([]);
-                    setCurrentModuleToStage("");
+                    setCurrentModuleToStage('');
                     setCurrentProficiencyToStage(1);
                   }}
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-yellow-400 focus:bg-white/10 transition-all duration-300 appearance-none"
                 >
-                  <option value="" className="bg-slate-900 text-slate-400">Select a team member to add</option>
+                  <option value="" className="bg-slate-900 text-slate-400">
+                    Select a team member to add
+                  </option>
                   {availableEmployees
-                    .filter((emp) => !formData.employees.some(assignedEmp => assignedEmp.employeeId === emp._id))
+                    .filter((emp) => !formData.employees.some((assignedEmp) => assignedEmp.employeeId === emp._id))
                     .map((employee) => (
                       <option key={employee._id} value={employee._id} className="bg-slate-900 text-white">
                         {employee.name} - {employee.role}
@@ -477,14 +457,18 @@ export default function CreateProject() {
 
                 {selectedEmployeeToAdd && (
                   <div className="space-y-4 pt-4 border-t border-white/20">
-                    <p className="text-slate-400 text-sm font-medium">Assign Modules to {selectedEmployeeToAdd.name}:</p>
+                    <p className="text-slate-400 text-sm font-medium">
+                      Assign Modules to {selectedEmployeeToAdd.name}:
+                    </p>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <select
                         value={currentModuleToStage}
                         onChange={(e) => setCurrentModuleToStage(e.target.value)}
                         className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white focus:outline-none focus:border-yellow-400 focus:bg-white/10 transition-all duration-300 appearance-none"
                       >
-                        <option value="" className="bg-slate-900 text-slate-400">Select a module</option>
+                        <option value="" className="bg-slate-900 text-slate-400">
+                          Select a module
+                        </option>
                         {formData.modules
                           .filter((module) => !stagedModulesForNewEmployee.some((sm) => sm.moduleId === module))
                           .map((module) => (
@@ -559,9 +543,7 @@ export default function CreateProject() {
                           <div className="font-semibold text-lg text-white">
                             {getEmployeeName(assignedEmp.employeeId)}
                           </div>
-                          <div className="text-sm text-slate-400">
-                            {getEmployeeRole(assignedEmp.employeeId)}
-                          </div>
+                          <div className="text-sm text-slate-400">{getEmployeeRole(assignedEmp.employeeId)}</div>
                         </div>
                         <button
                           type="button"
@@ -610,7 +592,7 @@ export default function CreateProject() {
                 Creating Project...
               </span>
             ) : (
-              "Create Project"
+              'Create Project'
             )}
           </button>
         </div>

@@ -1,5 +1,5 @@
-import People from "@/components/People/People";
-import React from "react";
+import People from '@/components/People/People';
+import React from 'react';
 
 const page = () => {
   return <People />;

@@ -1,10 +1,10 @@
-import ProfilePage from "@/components/Profile";
-import React from "react";
+import ProfilePage from '@/components/Profile';
+import React from 'react';
 
 const page = () => {
   return (
     <div>
-      <ProfilePage/>
+      <ProfilePage />
     </div>
   );
 };

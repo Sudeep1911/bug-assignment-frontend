@@ -1,11 +1,11 @@
-"use client";
-import { getCompanyUser } from "@/api/company.api";
-import { getProject, updateProject } from "@/api/project.api";
-import { useUserAtom } from "@/store/atoms";
-import { useCompanyAtom } from "@/store/companyAtom";
-import { GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from "lucide-react";
-import { useRouter, useParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+'use client';
+import { getCompanyUser } from '@/api/company.api';
+import { getProject, updateProject } from '@/api/project.api';
+import { useUserAtom } from '@/store/atoms';
+import { useCompanyAtom } from '@/store/companyAtom';
+import { GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 
 // Assuming these interfaces are defined elsewhere or in this file.
 // I've added a dummy 'Modules' interface to resolve the TypeScript error.
@@ -56,10 +56,10 @@ export default function EditProject() {
   const projectId = params.projectId as string;
 
   const [formData, setFormData] = useState<ProjectFormData>({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
+    name: '',
+    description: '',
+    startDate: '',
+    endDate: '',
     kanbanStages: [],
     modules: [],
     employees: [],
@@ -68,10 +68,10 @@ export default function EditProject() {
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeToAdd, setSelectedEmployeeToAdd] = useState<Employee | null>(null);
   const [stagedModulesForNewEmployee, setStagedModulesForNewEmployee] = useState<AssignedModule[]>([]);
-  const [currentModuleToStage, setCurrentModuleToStage] = useState<string>("");
+  const [currentModuleToStage, setCurrentModuleToStage] = useState<string>('');
   const [currentProficiencyToStage, setCurrentProficiencyToStage] = useState<number>(1);
-  const [newModule, setNewModule] = useState("");
-  const [newStage, setNewStage] = useState("");
+  const [newModule, setNewModule] = useState('');
+  const [newStage, setNewStage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isProjectLoading, setIsProjectLoading] = useState(true);
   const { companyUser } = useCompanyAtom();
@@ -109,7 +109,7 @@ export default function EditProject() {
           });
         }
       } catch (error) {
-        console.error("Failed to fetch project or employees:", error);
+        console.error('Failed to fetch project or employees:', error);
       } finally {
         setIsProjectLoading(false);
       }
@@ -131,7 +131,7 @@ export default function EditProject() {
         ...prevData,
         modules: [...prevData.modules, newModule.trim()],
       }));
-      setNewModule("");
+      setNewModule('');
     }
   };
 
@@ -141,9 +141,7 @@ export default function EditProject() {
       modules: prevData.modules.filter((module) => module !== moduleToRemove),
       employees: prevData.employees.map((emp) => ({
         ...emp,
-        assignedModules: emp.assignedModules.filter(
-          (mod) => mod.moduleId !== moduleToRemove
-        ),
+        assignedModules: emp.assignedModules.filter((mod) => mod.moduleId !== moduleToRemove),
       })),
     }));
   };
@@ -154,26 +152,24 @@ export default function EditProject() {
         ...prevData,
         kanbanStages: [...prevData.kanbanStages, newStage.trim()],
       }));
-      setNewStage("");
+      setNewStage('');
     }
   };
 
   const removeKanbanStage = (stageToRemove: string) => {
     setFormData((prevData) => ({
       ...prevData,
-      kanbanStages: prevData.kanbanStages.filter(
-        (stage) => stage !== stageToRemove
-      ),
+      kanbanStages: prevData.kanbanStages.filter((stage) => stage !== stageToRemove),
     }));
   };
 
   const addModuleToStaging = () => {
-    if (currentModuleToStage && !stagedModulesForNewEmployee.some(m => m.moduleId === currentModuleToStage)) {
+    if (currentModuleToStage && !stagedModulesForNewEmployee.some((m) => m.moduleId === currentModuleToStage)) {
       setStagedModulesForNewEmployee((prev) => [
         ...prev,
         { moduleId: currentModuleToStage, proficiency: currentProficiencyToStage },
       ]);
-      setCurrentModuleToStage("");
+      setCurrentModuleToStage('');
       setCurrentProficiencyToStage(1);
     } else if (currentModuleToStage) {
       console.warn(`Module '${currentModuleToStage}' is already staged for this employee.`);
@@ -181,9 +177,7 @@ export default function EditProject() {
   };
 
   const removeStagedModule = (moduleId: string) => {
-    setStagedModulesForNewEmployee((prev) =>
-      prev.filter((mod) => mod.moduleId !== moduleId)
-    );
+    setStagedModulesForNewEmployee((prev) => prev.filter((mod) => mod.moduleId !== moduleId));
   };
 
   const addTeamMemberWithModules = () => {
@@ -197,7 +191,7 @@ export default function EditProject() {
       }));
       setSelectedEmployeeToAdd(null);
       setStagedModulesForNewEmployee([]);
-      setCurrentModuleToStage("");
+      setCurrentModuleToStage('');
       setCurrentProficiencyToStage(1);
     }
   };
@@ -211,12 +205,12 @@ export default function EditProject() {
 
   const getEmployeeName = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp._id === employeeId);
-    return employee ? employee.name : "Unknown Employee";
+    return employee ? employee.name : 'Unknown Employee';
   };
 
   const getEmployeeRole = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp._id === employeeId);
-    return employee ? employee.role : "";
+    return employee ? employee.role : '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -225,8 +219,8 @@ export default function EditProject() {
 
     try {
       // Map modules from string[] to the required Modules[] format for the API
-      const updatedModules = formData.modules.map(moduleName => ({ name: moduleName }));
-      
+      const updatedModules = formData.modules.map((moduleName) => ({ name: moduleName }));
+
       const updatedProjectData = {
         name: formData.name,
         description: formData.description,
@@ -238,12 +232,12 @@ export default function EditProject() {
       };
 
       await updateProject(projectId, updatedProjectData);
-      console.log("Project data updated:", updatedProjectData);
+      console.log('Project data updated:', updatedProjectData);
 
       setLoading(false);
-      router.push("/dashboard");
+      router.push('/dashboard');
     } catch (error) {
-      console.error("Failed to update project:", error);
+      console.error('Failed to update project:', error);
       setLoading(false);
     }
   };
@@ -282,9 +276,7 @@ export default function EditProject() {
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
             Edit Project
           </h1>
-          <p className="text-slate-400">
-            Modify your project settings and configurations
-          </p>
+          <p className="text-slate-400">Modify your project settings and configurations</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-8">
@@ -396,7 +388,7 @@ export default function EditProject() {
                   onChange={(e) => setNewModule(e.target.value)}
                   placeholder="Add new module"
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
-                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addModule())}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addModule())}
                 />
                 <button
                   type="button"
@@ -450,7 +442,7 @@ export default function EditProject() {
                   onChange={(e) => setNewStage(e.target.value)}
                   placeholder="Add new stage"
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:bg-white/10 transition-all duration-300"
-                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addKanbanStage())}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKanbanStage())}
                 />
                 <button
                   type="button"
@@ -462,7 +454,7 @@ export default function EditProject() {
               </div>
             </div>
           </div>
-          
+
           {/* Team Members Section */}
           <div className="lg:col-span-2 xl:col-span-1 backdrop-blur-xl bg-white/10 rounded-3xl p-8 shadow-2xl border border-white/20">
             <div className="flex items-center gap-3 mb-5">
@@ -478,19 +470,21 @@ export default function EditProject() {
               <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/20">
                 <p className="text-slate-400 text-sm font-medium">Add New Team Member:</p>
                 <select
-                  value={selectedEmployeeToAdd?._id || ""}
+                  value={selectedEmployeeToAdd?._id || ''}
                   onChange={(e) => {
                     const employee = availableEmployees.find((emp) => emp._id === e.target.value);
                     setSelectedEmployeeToAdd(employee || null);
                     setStagedModulesForNewEmployee([]);
-                    setCurrentModuleToStage("");
+                    setCurrentModuleToStage('');
                     setCurrentProficiencyToStage(1);
                   }}
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-yellow-400 focus:bg-white/10 transition-all duration-300 appearance-none"
                 >
-                  <option value="" className="bg-slate-900 text-slate-400">Select a team member to add</option>
+                  <option value="" className="bg-slate-900 text-slate-400">
+                    Select a team member to add
+                  </option>
                   {availableEmployees
-                    .filter((emp) => !formData.employees.some(assignedEmp => assignedEmp.employeeId === emp._id))
+                    .filter((emp) => !formData.employees.some((assignedEmp) => assignedEmp.employeeId === emp._id))
                     .map((employee) => (
                       <option key={employee._id} value={employee._id} className="bg-slate-900 text-white">
                         {employee.name} - {employee.role}
@@ -500,14 +494,18 @@ export default function EditProject() {
 
                 {selectedEmployeeToAdd && (
                   <div className="space-y-4 pt-4 border-t border-white/20">
-                    <p className="text-slate-400 text-sm font-medium">Assign Modules to {selectedEmployeeToAdd.name}:</p>
+                    <p className="text-slate-400 text-sm font-medium">
+                      Assign Modules to {selectedEmployeeToAdd.name}:
+                    </p>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <select
                         value={currentModuleToStage}
                         onChange={(e) => setCurrentModuleToStage(e.target.value)}
                         className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-2xl text-white focus:outline-none focus:border-yellow-400 focus:bg-white/10 transition-all duration-300 appearance-none"
                       >
-                        <option value="" className="bg-slate-900 text-slate-400">Select a module</option>
+                        <option value="" className="bg-slate-900 text-slate-400">
+                          Select a module
+                        </option>
                         {formData.modules
                           .filter((module) => !stagedModulesForNewEmployee.some((sm) => sm.moduleId === module))
                           .map((module) => (
@@ -582,9 +580,7 @@ export default function EditProject() {
                           <div className="font-semibold text-lg text-white">
                             {getEmployeeName(assignedEmp.employeeId)}
                           </div>
-                          <div className="text-sm text-slate-400">
-                            {getEmployeeRole(assignedEmp.employeeId)}
-                          </div>
+                          <div className="text-sm text-slate-400">{getEmployeeRole(assignedEmp.employeeId)}</div>
                         </div>
                         <button
                           type="button"
@@ -633,7 +629,7 @@ export default function EditProject() {
                 Saving Changes...
               </span>
             ) : (
-              "Save Changes"
+              'Save Changes'
             )}
           </button>
         </div>
