@@ -4,74 +4,122 @@ import { X, Send, Paperclip } from 'lucide-react';
 import Image from 'next/image';
 import { useUserAtom } from '@/store/atoms';
 import { ChatAttachment, ChatMessage, TaskChatProps } from '@/types/tasks.types';
+import axios from 'axios'; // Use axios for cleaner API calls
+import { getChat, sendMessageToChat } from '@/api/chat.api';
 
 export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, showClose = true }: TaskChatProps) {
   const { currentUser } = useUserAtom();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number>(320);
 
-  // Load persisted chat (per chatId) & seed mock conversation if empty
-  useEffect(() => {
-    if (!isOpen) return;
+  // Custom hook to handle autosizing the textarea
+  const textareaRef = useAutosizeTextarea(input);
+
+  // Function to fetch messages from the backend
+  const fetchMessages = async () => {
+    if (!chatId || chatId.startsWith('draft-')) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const raw = localStorage.getItem(`taskChat:${chatId}`);
-      if (raw) {
-        setMessages(JSON.parse(raw));
-      } else {
-        // Seed mock if developer & tester present
-        const dev = availableEmployees.find((e) => /dev/i.test(e.role || ''));
-        const tester = availableEmployees.find((e) => /test/i.test(e.role || ''));
-        if (dev && tester) {
-          const now = Date.now();
-          const seed: ChatMessage[] = [
-            {
-              id: crypto.randomUUID(),
-              userId: tester._id,
-              text: 'Found an issue on login form when submitting empty password – please confirm.',
-              createdAt: now - 1000 * 60 * 4,
-            },
-            {
-              id: crypto.randomUUID(),
-              userId: dev._id,
-              text: 'Acknowledged. Reproducing now. Will push a fix shortly.',
-              createdAt: now - 1000 * 60 * 3,
-            },
-          ];
-          setMessages(seed);
-          localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(seed));
-        }
+      const data = await getChat(chatId);
+      setMessages(data.messages); // Assuming the API returns a 'messages' key
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      // Fallback to seeding mock data if backend connection fails
+      const dev = availableEmployees.find((e) => /dev/i.test(e.role || ''));
+      const tester = availableEmployees.find((e) => /test/i.test(e.role || ''));
+      if (dev && tester) {
+        const now = Date.now();
+        const seed: ChatMessage[] = [
+          {
+            _id: crypto.randomUUID(),
+            userId: tester._id,
+            text: 'Found an issue on login form when submitting empty password – please confirm.',
+            createdAt: now - 1000 * 60 * 4,
+          },
+          {
+            _id: crypto.randomUUID(),
+            userId: dev._id,
+            text: 'Acknowledged. Reproducing now. Will push a fix shortly.',
+            createdAt: now - 1000 * 60 * 3,
+          },
+        ];
+        setMessages(seed);
       }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to send a message to the backend
+  const sendMessage = async (attachments?: ChatAttachment[]) => {
+    const messageToSend = input.trim();
+    if ((!messageToSend && !attachments?.length) || !currentUser || !chatId) {
+      return;
+    }
+
+    const newMessageId = crypto.randomUUID();
+    const newMessage: ChatMessage = {
+      _id: newMessageId,
+      userId: currentUser._id,
+      text: messageToSend,
+      createdAt: Date.now(),
+      attachments,
+      status: 'sending', // Optimistic status
+    };
+
+    // Optimistically update the UI
+    setMessages((prev) => [...prev, newMessage]);
+    setInput('');
+
+    try {
+      // The backend can return the full message object with a proper ID
+      const sentMessage = await sendMessageToChat(chatId, {
+        text: messageToSend,
+        userId: currentUser._id,
+        attachments,
+      });
+
+      // Update the message with the confirmed data from the server
+      setMessages((prev) => prev.map((msg) => (msg._id === newMessageId ? { ...sentMessage, status: 'sent' } : msg)));
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Revert the optimistic update if it fails and show an error state
+      setMessages((prev) => prev.map((msg) => (msg._id === newMessageId ? { ...msg, status: 'failed' } : msg)));
+    }
+  };
+
+  // Fetch messages when the chat is opened and `chatId` is available
+  useEffect(() => {
+    if (isOpen && chatId) {
+      fetchMessages();
+    }
   }, [isOpen, chatId]);
 
-  // Persist on change
+  // Use a polling mechanism for real-time updates
   useEffect(() => {
-    try {
-      localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(messages));
-    } catch {}
-  }, [messages, chatId]);
+    const interval = setInterval(() => {
+      if (isOpen && chatId) {
+        fetchMessages();
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [isOpen, chatId]);
 
   // Auto-scroll bottom
   useEffect(() => {
-    if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isOpen) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isOpen]);
-
-  const sendMessage = (attachments?: ChatAttachment[]) => {
-    if ((!input.trim() && !attachments?.length) || !currentUser) return;
-    const msg: ChatMessage = {
-      id: crypto.randomUUID(),
-      userId: currentUser._id,
-      text: input.trim(),
-      createdAt: Date.now(),
-      attachments,
-    };
-    setMessages((prev) => [...prev, msg]);
-    setInput('');
-  };
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -95,7 +143,7 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
     return availableEmployees.find((e) => e._id === id);
   };
 
-  // Dynamic responsive height (clamped between 240 and 55vh)
+  // Dynamic responsive height
   useEffect(() => {
     const update = () => {
       const vh = window.innerHeight;
@@ -122,51 +170,53 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
           </button>
         )}
       </div>
-      {/* Messages area auto-grows until max height then scrolls */}
-      <div
-        className="overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex-1"
-        style={{}}
-      >
-        {messages.length === 0 && (
+      <div className="overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex-1">
+        {isLoading ? (
+          <p className="text-xs text-slate-500 text-center">Loading messages...</p>
+        ) : messages.length === 0 ? (
           <p className="text-xs text-slate-500 text-center">No messages yet. Start the conversation.</p>
-        )}
-        {messages.map((m) => {
-          const user = getUserMeta(m.userId);
-          const mine = currentUser?._id === m.userId;
-          return (
-            <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-              <div
-                className={`px-3 py-2 rounded-2xl text-xs leading-relaxed border w-fit max-w-[85%] break-words ${mine ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent' : 'bg-slate-800 text-slate-100 border-slate-700'}`}
-              >
-                <div className={`text-[9px] mb-1 ${mine ? 'text-white/80' : 'text-slate-400'}`}>
-                  {user?.name || user?.email || 'Unknown'}{' '}
-                  {user?.role && <span className="text-slate-500">({user.role})</span>} · {m.userId?.slice(-4)} ·{' '}
-                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                {m.attachments?.length && (
-                  <div className="space-y-2 mb-2">
-                    {m.attachments.map((att) => (
-                      <div key={att.id} className="overflow-hidden rounded-lg border border-white/10">
-                        {att.type === 'image' ? (
-                          <Image
-                            src={att.url}
-                            alt={att.name}
-                            width={300}
-                            height={200}
-                            className="max-h-40 w-auto object-contain"
-                          />
-                        ) : (
-                          <video src={att.url} controls className="max-h-40" />
-                        )}
-                      </div>
-                    ))}
+        ) : (
+          messages.map((m) => {
+            const user = getUserMeta(m.userId);
+            const mine = currentUser?._id === m.userId;
+            const isFailed = m.status === 'failed'; // Check for failed status
+
+            return (
+              <div key={m._id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                <div
+                  className={`px-3 py-2 rounded-2xl text-xs leading-relaxed border w-fit max-w-[85%] break-words ${mine ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent' : 'bg-slate-800 text-slate-100 border-slate-700'} ${isFailed ? 'border-red-500' : ''}`} // Add red border for failed messages
+                >
+                  <div className={`text-[9px] mb-1 ${mine ? 'text-white/80' : 'text-slate-400'}`}>
+                    {user?.name || user?.email || 'Unknown'}{' '}
+                    {user?.role && <span className="text-slate-500">({user.role})</span>} -{' '}
+                    {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                )}
-                <div className="whitespace-pre-wrap">{m.text}</div>
+                  {/* {m.attachments?.length && (
+                    <div className="space-y-2 mb-2">
+                      {m.attachments.map((att) => (
+                        <div key={att.id} className="overflow-hidden rounded-lg border border-white/10">
+                          {att.type === 'image' ? (
+                            <Image
+                              src={att.url}
+                              alt={att.name}
+                              width={300}
+                              height={200}
+                              className="max-h-40 w-auto object-contain"
+                            />
+                          ) : (
+                            <video src={att.url} controls className="max-h-40" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )} */}
+                  <div className="whitespace-pre-wrap">{m.text}</div>
+                  {isFailed && <div className="text-[10px] text-red-400 mt-1">Failed to send. Click to retry.</div>}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
         <div ref={bottomRef} />
       </div>
       <div className="p-3 border-t border-white/10 bg-black/70">
@@ -192,6 +242,7 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
             <Paperclip className="w-4 h-4" />
           </button>
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -221,3 +272,17 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
     </div>
   );
 }
+
+// Custom hook to automatically adjust textarea height
+const useAutosizeTextarea = (value: string) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
+
+  return textareaRef;
+};

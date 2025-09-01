@@ -6,11 +6,12 @@ export interface ChatAttachment {
 }
 
 export interface ChatMessage {
-  id: string;
+  _id: string;
   userId: string;
   text: string;
   createdAt: number; // epoch ms
   attachments?: ChatAttachment[];
+  status?: 'sending' | 'sent' | 'failed'; // optional, for optimistic UI updates
 }
 
 export interface TaskChatProps {
