@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { X, Calendar, User, Bug, CheckSquare, Star, LoaderCircle, ChevronDown } from "lucide-react";
+import { X, Calendar, User, LoaderCircle, ChevronDown, Paperclip } from "lucide-react";
+import Image from 'next/image';
 import { Project } from "@/types/project.types";
 import { createGPT } from "@/api/gpt.api";
 import { useUserAtom } from "@/store/atoms";
 import { ItemData } from "@/api/item.api";
+import TaskChat from "./TaskChat";
 
 interface SubmitItemPopupProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ export interface SubmitItemData {
   raisedBy: string;
   monitoredBy: string;
   dueDate: string;
+  attachments?: File[]; // optional task attachments
 }
 
 const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
@@ -53,6 +56,9 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
   const { currentUser } = useUserAtom();
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [taskAttachments, setTaskAttachments] = useState<File[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  // Chat is now always visible (small anchored window), remove toggle state.
 
   // Set defaults for raisedBy and monitoredBy when popup opens or employees change
   useEffect(() => {
@@ -80,17 +86,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const availableModules = selectedProject?.modules
-    ? selectedProject.modules
-    : [
-        { _id: "frontend", name: "Frontend" },
-        { _id: "backend", name: "Backend" },
-        { _id: "database", name: "Database" },
-        { _id: "api", name: "API" },
-        { _id: "uiux", name: "UI/UX" },
-        { _id: "testing", name: "Testing" },
-        { _id: "devops", name: "DevOps" },
-      ];
+  // (Optional) fallback modules previously declared removed as unused.
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -110,19 +106,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
     }
   };
 
-  const handleTypeChange = (type: 'Bug' | 'Feature' | 'Task') => {
-    setFormData(prev => ({
-      ...prev,
-      type,
-    }));
-  };
-
-  const handleModuleChange = (moduleId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      modules: moduleId, // Store selected module _id
-    }));
-  };
+  // Removed unused handlers (type & module change helpers) to satisfy linter.
 
   const handleAutoFill = async () => {
     if (!formData.title.trim() || !formData.description.trim()) {
@@ -183,11 +167,11 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
         if (itemToEdit) {
           await onUpdate(formData);
         } else {
-          await onSubmit(formData);
+          await onSubmit({ ...formData, attachments: taskAttachments });
         }// Use await if onSubmit is async
         
         // Reset form
-        setFormData({
+  setFormData({
           type: "",
           title: "",
           description: "",
@@ -198,6 +182,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
           monitoredBy: "",
           dueDate: "",
         });
+  setTaskAttachments([]);
         
         onClose();
       } catch (error) {
@@ -211,18 +196,12 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
 
   if (!isOpen) return null;
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "bug": return <Bug className="w-5 h-5" />;
-      case "task": return <CheckSquare className="w-5 h-5" />;
-      case "feature": return <Star className="w-5 h-5" />;
-      default: return <Bug className="w-5 h-5" />;
-    }
-  };
+  // getTypeIcon removed (unused) to satisfy linter.
 
   return (
 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[100vh] border border-white/20">
+  <div className="relative backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[100vh] border border-white/20 flex flex-col">
+  {/* Chat moved inline inside the form below fields instead of floating */}
         <div className="flex items-center justify-between p-6 border-b border-white/20">
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">Type</label>
@@ -280,7 +259,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+  <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-400 mb-2">Title</label>
@@ -371,25 +350,35 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
             </div>
           </div>
           
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={handleAutoFill}
-              disabled={!formData.title.trim() || !formData.description.trim() || isAutoFilling}
-              className={`px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-2xl font-bold hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow-lg flex items-center space-x-2 disabled:from-white/5 disabled:to-white/5 disabled:text-slate-400 disabled:border-white/20 disabled:cursor-not-allowed`}
-              title={
-                formData.title.trim() && formData.description.trim()
-                  ? "Auto-fill based on title and description"
-                  : "Please fill both title and description first"
-              }
-            >
-              {isAutoFilling && <LoaderCircle className="h-5 w-5 animate-spin" />}
-              <span>Auto Fill</span>
-            </button>
-          </div>
-
-          <div className="flex justify-end">
-            <div className="w-64 space-y-4">
+          {/* Chat left, controls (Auto Fill, Raised, Monitored) right */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <div className="md:col-span-2">
+              <TaskChat
+                isOpen={true}
+                showClose={false}
+                onClose={() => {}}
+                availableEmployees={availableEmployees}
+                chatId={itemToEdit?._id || `draft-${selectedProject?._id || 'global'}-${currentUser?._id || 'anon'}`}
+              />
+            </div>
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-400">Auto Assist</span>
+                <button
+                  type="button"
+                  onClick={handleAutoFill}
+                  disabled={!formData.title.trim() || !formData.description.trim() || isAutoFilling}
+                  className={`inline-flex px-3 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow items-center gap-1 disabled:from-white/5 disabled:to-white/5 disabled:text-slate-400 disabled:border-white/20 disabled:cursor-not-allowed text-xs`}
+                  title={
+                    formData.title.trim() && formData.description.trim()
+                      ? "Auto-fill based on title & description"
+                      : "Fill title & description first"
+                  }
+                >
+                  {isAutoFilling && <LoaderCircle className="h-3 w-3 animate-spin" />}
+                  <span>Auto Fill</span>
+                </button>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Raised By</label>
                 <div className="relative">
@@ -410,7 +399,6 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                 </div>
                 {errors.raisedBy && (<p className="text-red-400 text-sm mt-1">{errors.raisedBy}</p>)}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Monitored By</label>
                 <div className="relative">
@@ -434,15 +422,64 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-6 border-t border-white/20">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 pt-6 border-t border-white/20">
+            {/* Attachments bottom-left */}
+            <div className="flex-1 max-w-md order-2 md:order-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+                onChange={e => {
+                  const files = e.target.files ? Array.from(e.target.files) : [];
+                  if (files.length) setTaskAttachments(prev => [...prev, ...files]);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+              />
+              <div className="flex items-center gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 rounded-2xl bg-white/5 border border-white/20 text-xs text-slate-300 hover:bg-white/10 transition flex items-center gap-2"
+                  title="Attach images or videos"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  <span>Add Attachments</span>
+                </button>
+                {taskAttachments.length > 0 && (
+                  <span className="text-[11px] text-slate-500">{taskAttachments.length} file(s) added</span>
+                )}
+              </div>
+              {taskAttachments.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {taskAttachments.slice(0,8).map((file, idx) => {
+                    const url = URL.createObjectURL(file);
+                    const isImg = file.type.startsWith('image/');
+                    return (
+                      <div key={idx} className="relative group border border-white/10 rounded-lg overflow-hidden">
+                        {isImg ? (
+                          <Image src={url} alt={file.name} width={120} height={90} className="object-cover w-full h-16" />
+                        ) : (
+                          <video src={url} className="w-full h-16 object-cover" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="mt-2 text-[10px] text-slate-500 leading-snug">
+                Attachments can help auto analysis later (alternative to Auto Fill). Images & videos only.
+              </p>
+            </div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-2xl font-bold hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow-lg flex items-center space-x-2 disabled:from-white/5 disabled:to-white/5 disabled:text-slate-400 disabled:border-white/20 disabled:cursor-not-allowed"
+              className="order-1 md:order-2 self-end md:self-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-2xl font-bold hover:from-purple-600 hover:to-cyan-600 transition-all duration-300 shadow-lg flex items-center space-x-2 disabled:from-white/5 disabled:to-white/5 disabled:text-slate-400 disabled:border-white/20 disabled:cursor-not-allowed"
             >
               {isSubmitting && <LoaderCircle className="h-5 w-5 animate-spin" />}
               <span>
-                {isSubmitting ? "Submitting..." : `Submit ${formData.type}`}
+                {isSubmitting ? "Submitting..." : `Submit ${formData.type || ""}`}
               </span>
             </button>
           </div>

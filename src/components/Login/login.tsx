@@ -8,9 +8,7 @@ import {
   User,
   ArrowRight,
   Bug,
-  Github,
-  Twitter,
-  Linkedin,
+
 } from "lucide-react";
 import { loginApi, signUp } from "@/api/login.api";
 import { useRouter } from "next/navigation";
@@ -349,7 +347,7 @@ const handleSubmit = async () => {
               Reset Password
             </h3>
             <p className="text-slate-400 mb-6">
-              Enter your email address and we'll send you a link to reset your
+              Enter your email address and we&#39;ll send you a link to reset your
               password.
             </p>
 
