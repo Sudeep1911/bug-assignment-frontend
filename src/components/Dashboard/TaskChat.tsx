@@ -4,74 +4,107 @@ import { X, Send, Paperclip } from 'lucide-react';
 import Image from 'next/image';
 import { useUserAtom } from '@/store/atoms';
 import { ChatAttachment, ChatMessage, TaskChatProps } from '@/types/tasks.types';
+import io from 'socket.io-client'; // Import the socket.io-client library
+
+// Define the Socket.IO server URL
+const SOCKET_URL = process.env.NEXT_PUBLIC_ENGINE_URL || 'http://localhost:3000';
 
 export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, showClose = true }: TaskChatProps) {
   const { currentUser } = useUserAtom();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number>(320);
 
-  // Load persisted chat (per chatId) & seed mock conversation if empty
+  // Custom hook to handle autosizing the textarea
+  const textareaRef = useAutosizeTextarea(input);
+
+  // Use a ref to hold the socket connection
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
+
   useEffect(() => {
-    if (!isOpen) return;
-    try {
-      const raw = localStorage.getItem(`taskChat:${chatId}`);
-      if (raw) {
-        setMessages(JSON.parse(raw));
-      } else {
-        // Seed mock if developer & tester present
-        const dev = availableEmployees.find((e) => /dev/i.test(e.role || ''));
-        const tester = availableEmployees.find((e) => /test/i.test(e.role || ''));
-        if (dev && tester) {
-          const now = Date.now();
-          const seed: ChatMessage[] = [
-            {
-              id: crypto.randomUUID(),
-              userId: tester._id,
-              text: 'Found an issue on login form when submitting empty password – please confirm.',
-              createdAt: now - 1000 * 60 * 4,
-            },
-            {
-              id: crypto.randomUUID(),
-              userId: dev._id,
-              text: 'Acknowledged. Reproducing now. Will push a fix shortly.',
-              createdAt: now - 1000 * 60 * 3,
-            },
-          ];
-          setMessages(seed);
-          localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(seed));
+    // Only connect if the chat is open and a chatId is available
+    if (isOpen && chatId && !socketRef.current) {
+      setIsLoading(true);
+      const socket = io(SOCKET_URL);
+      socketRef.current = socket;
+
+      // Event listener for initial messages
+      socket.on('messages', (msgs: ChatMessage[]) => {
+        setMessages(msgs);
+        setIsLoading(false);
+      });
+
+      // Event listener for new incoming messages
+      socket.on('message', (msg: ChatMessage) => {
+        setMessages((prev) => [...prev, { ...msg, status: 'sent' }]);
+      });
+
+      // Request to join the specific chat room for this task
+      socket.emit('joinTaskChat', { chatId });
+
+      // Clean up the socket connection when the component unmounts or chatId changes
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
         }
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      };
+    }
   }, [isOpen, chatId]);
 
-  // Persist on change
-  useEffect(() => {
-    try {
-      localStorage.setItem(`taskChat:${chatId}`, JSON.stringify(messages));
-    } catch {}
-  }, [messages, chatId]);
+  // Function to send a message via WebSocket
+  const sendMessage = async (attachments?: ChatAttachment[]) => {
+    const messageToSend = input.trim();
+    const socket = socketRef.current;
+    if ((!messageToSend && !attachments?.length) || !currentUser || !chatId || !socket) {
+      return;
+    }
+
+    const optimisticId = crypto.randomUUID();
+    const optimisticMessage: ChatMessage = {
+      _id: optimisticId,
+      userId: currentUser._id,
+      text: messageToSend,
+      createdAt: Date.now(),
+      attachments,
+      status: 'sending', // Optimistic status
+    };
+
+    // Optimistically update the UI
+    setInput('');
+
+    // Emit the message to the server via WebSocket
+    socket.emit(
+      'sendMessage',
+      {
+        chatId,
+        text: messageToSend,
+        userId: currentUser._id,
+        attachments,
+      },
+      (sentMessage: ChatMessage) => {
+        // This callback is for confirmation from the server
+        if (sentMessage) {
+          // Find the optimistic message by its temporary ID and replace it with the server's version
+          setMessages((prev) =>
+            prev.map((msg) => (msg._id === optimisticId ? { ...sentMessage, status: 'sent' } : msg)),
+          );
+        } else {
+          // Revert the optimistic update if sending fails
+          setMessages((prev) => prev.map((msg) => (msg._id === optimisticId ? { ...msg, status: 'failed' } : msg)));
+        }
+      },
+    );
+  };
 
   // Auto-scroll bottom
   useEffect(() => {
-    if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isOpen) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isOpen]);
-
-  const sendMessage = (attachments?: ChatAttachment[]) => {
-    if ((!input.trim() && !attachments?.length) || !currentUser) return;
-    const msg: ChatMessage = {
-      id: crypto.randomUUID(),
-      userId: currentUser._id,
-      text: input.trim(),
-      createdAt: Date.now(),
-      attachments,
-    };
-    setMessages((prev) => [...prev, msg]);
-    setInput('');
-  };
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -95,7 +128,7 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
     return availableEmployees.find((e) => e._id === id);
   };
 
-  // Dynamic responsive height (clamped between 240 and 55vh)
+  // Dynamic responsive height
   useEffect(() => {
     const update = () => {
       const vh = window.innerHeight;
@@ -122,76 +155,40 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
           </button>
         )}
       </div>
-      {/* Messages area auto-grows until max height then scrolls */}
-      <div
-        className="overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex-1"
-        style={{}}
-      >
-        {messages.length === 0 && (
+      <div className="overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex-1">
+        {isLoading ? (
+          <p className="text-xs text-slate-500 text-center">Loading messages...</p>
+        ) : messages.length === 0 ? (
           <p className="text-xs text-slate-500 text-center">No messages yet. Start the conversation.</p>
-        )}
-        {messages.map((m) => {
-          const user = getUserMeta(m.userId);
-          const mine = currentUser?._id === m.userId;
-          return (
-            <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-              <div
-                className={`px-3 py-2 rounded-2xl text-xs leading-relaxed border w-fit max-w-[85%] break-words ${mine ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent' : 'bg-slate-800 text-slate-100 border-slate-700'}`}
-              >
-                <div className={`text-[9px] mb-1 ${mine ? 'text-white/80' : 'text-slate-400'}`}>
-                  {user?.name || user?.email || 'Unknown'}{' '}
-                  {user?.role && <span className="text-slate-500">({user.role})</span>} · {m.userId?.slice(-4)} ·{' '}
-                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                {m.attachments?.length && (
-                  <div className="space-y-2 mb-2">
-                    {m.attachments.map((att) => (
-                      <div key={att.id} className="overflow-hidden rounded-lg border border-white/10">
-                        {att.type === 'image' ? (
-                          <Image
-                            src={att.url}
-                            alt={att.name}
-                            width={300}
-                            height={200}
-                            className="max-h-40 w-auto object-contain"
-                          />
-                        ) : (
-                          <video src={att.url} controls className="max-h-40" />
-                        )}
-                      </div>
-                    ))}
+        ) : (
+          messages.map((m) => {
+            const user = getUserMeta(m.userId);
+            const mine = currentUser?._id === m.userId;
+            const isFailed = m.status === 'failed'; // Check for failed status
+
+            return (
+              <div key={m._id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                <div
+                  className={`px-3 py-2 rounded-2xl text-xs leading-relaxed border w-fit max-w-[85%] break-words ${mine ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white border-transparent' : 'bg-slate-800 text-slate-100 border-slate-700'} ${isFailed ? 'border-red-500' : ''}`} // Add red border for failed messages
+                >
+                  <div className={`text-[9px] mb-1 ${mine ? 'text-white/80' : 'text-slate-400'}`}>
+                    {user?.name || user?.email || 'Unknown'}{' '}
+                    {user?.role && <span className="text-slate-500">({user.role})</span>} -{' '}
+                    {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                )}
-                <div className="whitespace-pre-wrap">{m.text}</div>
+                  <div className="whitespace-pre-wrap">{m.text}</div>
+                  {isFailed && <div className="text-[10px] text-red-400 mt-1">Failed to send. Click to retry.</div>}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
         <div ref={bottomRef} />
       </div>
       <div className="p-3 border-t border-white/10 bg-black/70">
         <div className="flex items-end gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              handleFiles(e.target.files);
-              if (fileInputRef.current) fileInputRef.current.value = '';
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 transition"
-            title="Attach image or video"
-            aria-label="Attach files"
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -221,3 +218,17 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
     </div>
   );
 }
+
+// Custom hook to automatically adjust textarea height
+const useAutosizeTextarea = (value: string) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
+
+  return textareaRef;
+};

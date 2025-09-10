@@ -161,7 +161,7 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
 
       try {
         if (itemToEdit) {
-          await onUpdate(formData);
+          await onUpdate({ ...formData, attachments: taskAttachments });
         } else {
           await onSubmit({ ...formData, attachments: taskAttachments });
         } // Use await if onSubmit is async
@@ -496,9 +496,6 @@ const SubmitItemPopup: React.FC<SubmitItemPopupProps> = ({
                   })}
                 </div>
               )}
-              <p className="mt-2 text-[10px] text-slate-500 leading-snug">
-                Attachments can help auto analysis later (alternative to Auto Fill). Images & videos only.
-              </p>
             </div>
             <button
               type="submit"
