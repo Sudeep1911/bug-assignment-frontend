@@ -4,70 +4,67 @@ import { X, Send, Paperclip } from 'lucide-react';
 import Image from 'next/image';
 import { useUserAtom } from '@/store/atoms';
 import { ChatAttachment, ChatMessage, TaskChatProps } from '@/types/tasks.types';
-import axios from 'axios'; // Use axios for cleaner API calls
-import { getChat, sendMessageToChat } from '@/api/chat.api';
+import io from 'socket.io-client'; // Import the socket.io-client library
+
+// Define the Socket.IO server URL
+const SOCKET_URL = process.env.NEXT_PUBLIC_ENGINE_URL || 'http://localhost:3000';
 
 export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, showClose = true }: TaskChatProps) {
   const { currentUser } = useUserAtom();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number>(320);
 
   // Custom hook to handle autosizing the textarea
   const textareaRef = useAutosizeTextarea(input);
 
-  // Function to fetch messages from the backend
-  const fetchMessages = async () => {
-    if (!chatId || chatId.startsWith('draft-')) {
-      setIsLoading(false);
-      return;
-    }
+  // Use a ref to hold the socket connection
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
 
-    setIsLoading(true);
-    try {
-      const data = await getChat(chatId);
-      setMessages(data.messages); // Assuming the API returns a 'messages' key
-    } catch (error) {
-      console.error('Error fetching chat messages:', error);
-      // Fallback to seeding mock data if backend connection fails
-      const dev = availableEmployees.find((e) => /dev/i.test(e.role || ''));
-      const tester = availableEmployees.find((e) => /test/i.test(e.role || ''));
-      if (dev && tester) {
-        const now = Date.now();
-        const seed: ChatMessage[] = [
-          {
-            _id: crypto.randomUUID(),
-            userId: tester._id,
-            text: 'Found an issue on login form when submitting empty password – please confirm.',
-            createdAt: now - 1000 * 60 * 4,
-          },
-          {
-            _id: crypto.randomUUID(),
-            userId: dev._id,
-            text: 'Acknowledged. Reproducing now. Will push a fix shortly.',
-            createdAt: now - 1000 * 60 * 3,
-          },
-        ];
-        setMessages(seed);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Only connect if the chat is open and a chatId is available
+    if (isOpen && chatId && !socketRef.current) {
+      setIsLoading(true);
+      const socket = io(SOCKET_URL);
+      socketRef.current = socket;
 
-  // Function to send a message to the backend
+      // Event listener for initial messages
+      socket.on('messages', (msgs: ChatMessage[]) => {
+        setMessages(msgs);
+        setIsLoading(false);
+      });
+
+      // Event listener for new incoming messages
+      socket.on('message', (msg: ChatMessage) => {
+        setMessages((prev) => [...prev, { ...msg, status: 'sent' }]);
+      });
+
+      // Request to join the specific chat room for this task
+      socket.emit('joinTaskChat', { chatId });
+
+      // Clean up the socket connection when the component unmounts or chatId changes
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+      };
+    }
+  }, [isOpen, chatId]);
+
+  // Function to send a message via WebSocket
   const sendMessage = async (attachments?: ChatAttachment[]) => {
     const messageToSend = input.trim();
-    if ((!messageToSend && !attachments?.length) || !currentUser || !chatId) {
+    const socket = socketRef.current;
+    if ((!messageToSend && !attachments?.length) || !currentUser || !chatId || !socket) {
       return;
     }
 
-    const newMessageId = crypto.randomUUID();
-    const newMessage: ChatMessage = {
-      _id: newMessageId,
+    const optimisticId = crypto.randomUUID();
+    const optimisticMessage: ChatMessage = {
+      _id: optimisticId,
       userId: currentUser._id,
       text: messageToSend,
       createdAt: Date.now(),
@@ -76,43 +73,31 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
     };
 
     // Optimistically update the UI
-    setMessages((prev) => [...prev, newMessage]);
     setInput('');
 
-    try {
-      // The backend can return the full message object with a proper ID
-      const sentMessage = await sendMessageToChat(chatId, {
+    // Emit the message to the server via WebSocket
+    socket.emit(
+      'sendMessage',
+      {
+        chatId,
         text: messageToSend,
         userId: currentUser._id,
         attachments,
-      });
-
-      // Update the message with the confirmed data from the server
-      setMessages((prev) => prev.map((msg) => (msg._id === newMessageId ? { ...sentMessage, status: 'sent' } : msg)));
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Revert the optimistic update if it fails and show an error state
-      setMessages((prev) => prev.map((msg) => (msg._id === newMessageId ? { ...msg, status: 'failed' } : msg)));
-    }
+      },
+      (sentMessage: ChatMessage) => {
+        // This callback is for confirmation from the server
+        if (sentMessage) {
+          // Find the optimistic message by its temporary ID and replace it with the server's version
+          setMessages((prev) =>
+            prev.map((msg) => (msg._id === optimisticId ? { ...sentMessage, status: 'sent' } : msg)),
+          );
+        } else {
+          // Revert the optimistic update if sending fails
+          setMessages((prev) => prev.map((msg) => (msg._id === optimisticId ? { ...msg, status: 'failed' } : msg)));
+        }
+      },
+    );
   };
-
-  // Fetch messages when the chat is opened and `chatId` is available
-  useEffect(() => {
-    if (isOpen && chatId) {
-      fetchMessages();
-    }
-  }, [isOpen, chatId]);
-
-  // Use a polling mechanism for real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isOpen && chatId) {
-        fetchMessages();
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, [isOpen, chatId]);
 
   // Auto-scroll bottom
   useEffect(() => {
@@ -191,25 +176,6 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
                     {user?.role && <span className="text-slate-500">({user.role})</span>} -{' '}
                     {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  {/* {m.attachments?.length && (
-                    <div className="space-y-2 mb-2">
-                      {m.attachments.map((att) => (
-                        <div key={att.id} className="overflow-hidden rounded-lg border border-white/10">
-                          {att.type === 'image' ? (
-                            <Image
-                              src={att.url}
-                              alt={att.name}
-                              width={300}
-                              height={200}
-                              className="max-h-40 w-auto object-contain"
-                            />
-                          ) : (
-                            <video src={att.url} controls className="max-h-40" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )} */}
                   <div className="whitespace-pre-wrap">{m.text}</div>
                   {isFailed && <div className="text-[10px] text-red-400 mt-1">Failed to send. Click to retry.</div>}
                 </div>
@@ -221,26 +187,6 @@ export default function TaskChat({ isOpen, onClose, availableEmployees, chatId, 
       </div>
       <div className="p-3 border-t border-white/10 bg-black/70">
         <div className="flex items-end gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              handleFiles(e.target.files);
-              if (fileInputRef.current) fileInputRef.current.value = '';
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 transition"
-            title="Attach image or video"
-            aria-label="Attach files"
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
           <textarea
             ref={textareaRef}
             value={input}

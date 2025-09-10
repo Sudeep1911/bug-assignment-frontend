@@ -33,7 +33,35 @@ export const getItems = async (projectId?: string) => {
 
 export const updateItem = async (itemId: string, data: Partial<ItemData>) => {
   try {
-    const result = await EngineInstanse.put(`/tasks/${itemId}`, data, options);
+    const formData = new FormData();
+
+    // Iterate over the keys of the data object
+    for (const key of Object.keys(data) as Array<keyof ItemData>) {
+      // Check for the 'attachments' key specifically
+      if (key === 'attachments') {
+        // Iterate over the attachments and append them to formData
+        for (const attachment of data.attachments || []) {
+          if (attachment) {
+            formData.append('attachments', attachment);
+          }
+        }
+      } else {
+        // For other keys, append the data value.
+        // The type assertion 'data[key]' is safe here because we're iterating over the object's keys.
+        const value = data[key];
+        if (value !== undefined) {
+          formData.append(key, JSON.stringify(value));
+        }
+      }
+    }
+    const options = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+    console.log(formData);
+
+    const result = await EngineInstanse.put(`/tasks/${itemId}`, formData, options);
     return result;
   } catch (e) {
     console.log('error', e);
