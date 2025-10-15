@@ -18,6 +18,25 @@ export const getCompanyUser = async (id: string): Promise<Employee[] | undefined
   }
 };
 
+export const getCompanyUserbyId = async (id: string): Promise<Employee[] | undefined> => {
+  try {
+    const result = await EngineInstanse.get(`/company/${id}/users`, options);
+    return result.data;
+  } catch (e) {
+    console.log('error', e);
+    return undefined;
+  }
+};
+
+export const updateEmployee = async (employeeId: string, data: Employee) => {
+  try {
+    const result = await EngineInstanse.put(`/users/${employeeId}`, data, options);
+    return result;
+  } catch (e) {
+    console.log('error', e);
+  }
+};
+
 export const getCompanyById = async (id: string) => {
   try {
     const result = await EngineInstanse.get(`/company/${id}`, options);

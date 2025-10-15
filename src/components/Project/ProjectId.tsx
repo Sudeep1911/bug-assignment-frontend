@@ -1,9 +1,9 @@
 'use client';
-import { getCompanyUser } from '@/api/company.api';
+import { getCompanyUser, getCompanyUserbyId } from '@/api/company.api';
 import { getProject, updateProject } from '@/api/project.api';
 import { useUserAtom } from '@/store/atoms';
 import { useCompanyAtom } from '@/store/companyAtom';
-import { GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from 'lucide-react';
+import { ArrowLeft, GripVertical, ListTodo, Loader2, Package, Plus, Settings, Users } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 
@@ -88,25 +88,38 @@ export default function EditProject() {
       setIsProjectLoading(true);
       try {
         // Fetch employees
-        const employees = await getCompanyUser(companyUser._id);
-        if (employees) {
-          setAvailableEmployees(employees);
-        }
+        const employees = await getCompanyUserbyId(companyUser._id);
+        if (!employees) return;
+        setAvailableEmployees(employees);
 
         // Fetch project details
         const project = await getProject(projectId);
         if (project) {
           // Correctly map the incoming project data to the formData state shape
-          setFormData({
-            name: project.name,
-            description: project.description,
-            startDate: new Date(project.startDate).toISOString().split('T')[0],
-            endDate: new Date(project.endDate).toISOString().split('T')[0],
-            kanbanStages: project.kanbanStages || [], // Ensure it's an array
-            // Map the modules from the API to the string[] format expected by the form state
-            modules: project.modules.map((m: Modules) => m.name) || [],
-            employees: project.employees || [], // Ensure 'employees' property is present
-          });
+          const project = await getProject(projectId);
+          if (project) {
+            setFormData({
+              name: project.name,
+              description: project.description,
+              startDate: new Date(project.startDate).toISOString().split('T')[0],
+              endDate: new Date(project.endDate).toISOString().split('T')[0],
+              // ✅ extract stage names
+              kanbanStages: project.kanbanStages?.map((stage: any) => stage.name) || [],
+              // ✅ extract module names
+              modules: project.modules?.map((m: any) => m.name) || [],
+              // ✅ normalize employees
+              employees:
+                project.employees?.map((emp: any) => ({
+                  employeeId: emp._id,
+
+                  assignedModules:
+                    emp.details?.modules?.map((mod: any) => ({
+                      moduleId: mod.module, // moduleId = module objectId
+                      proficiency: mod.proficiency,
+                    })) || [],
+                })) || [],
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to fetch project or employees:', error);
@@ -272,6 +285,15 @@ export default function EditProject() {
 
       {/* Main content container */}
       <div className="w-full max-w-7xl relative z-10">
+        <div className="w-full max-w-xl mb-4">
+          <button
+            onClick={() => router.push('/dashboard')} // or /company/overview if that’s your route
+            className="flex items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors gap-3"
+            aria-label="Back to Company Overview"
+          >
+            <ArrowLeft className="w-5 h-5 text-slate-300" /> Back to Dashboard
+          </button>
+        </div>
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
             Edit Project
