@@ -297,6 +297,7 @@ export default function DashboardPage() {
                         {/* Employee Settings */}
                         <button
                           onClick={() => {
+                            router.push('/company/people');
                             setIsUserMenuOpen(false);
                           }}
                           className="flex items-center space-x-2 w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-white/20 transition-colors"
